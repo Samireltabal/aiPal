@@ -1,0 +1,177 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Chat;
+
+use App\Ai\Agents\Chat\ChatAgent;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+class ChatControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_unauthenticated_request_is_rejected(): void
+    {
+        $response = $this->postJson('/api/v1/chat', ['message' => 'hello']);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_message_is_required(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', []);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['message']);
+    }
+
+    public function test_message_must_not_exceed_max_length(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', [
+            'message' => str_repeat('a', 32769),
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['message']);
+    }
+
+    public function test_invalid_provider_is_rejected(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', [
+            'message' => 'hello',
+            'provider' => 'invalid-provider',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['provider']);
+    }
+
+    public function test_invalid_conversation_id_is_rejected(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', [
+            'message' => 'hello',
+            'conversation_id' => 'not-a-uuid',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['conversation_id']);
+    }
+
+    public function test_new_conversation_streams_response(): void
+    {
+        ChatAgent::fake(['Hello there!']);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', [
+            'message' => 'hello',
+        ]);
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/event-stream', $response->headers->get('Content-Type'));
+    }
+
+    public function test_existing_conversation_is_continued(): void
+    {
+        ChatAgent::fake(['Continuing...']);
+
+        $user = User::factory()->create();
+
+        // Create a conversation first
+        $conversationId = $this->createConversation($user);
+
+        $response = $this->actingAs($user)->postJson('/api/v1/chat', [
+            'message' => 'continue the chat',
+            'conversation_id' => $conversationId,
+        ]);
+
+        $response->assertOk();
+    }
+
+    public function test_conversations_are_listed(): void
+    {
+        ChatAgent::fake(['Hi!']);
+
+        $user = User::factory()->create();
+
+        // Create a conversation
+        $this->actingAs($user)->postJson('/api/v1/chat', ['message' => 'first message']);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/conversations');
+
+        $response->assertOk();
+        $response->assertJsonStructure(['data', 'total', 'current_page']);
+    }
+
+    public function test_user_cannot_list_other_users_conversations(): void
+    {
+        ChatAgent::fake(['Hi!']);
+
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $this->actingAs($userA)->postJson('/api/v1/chat', ['message' => 'hello from A']);
+
+        $response = $this->actingAs($userB)->getJson('/api/v1/conversations');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_conversation_can_be_deleted(): void
+    {
+        ChatAgent::fake(['Hi!']);
+
+        $user = User::factory()->create();
+
+        $conversationId = $this->createConversation($user);
+
+        $response = $this->actingAs($user)->deleteJson("/api/v1/conversations/{$conversationId}");
+
+        $response->assertNoContent();
+
+        $this->assertDatabaseMissing('agent_conversations', ['id' => $conversationId]);
+    }
+
+    public function test_user_cannot_delete_other_users_conversation(): void
+    {
+        ChatAgent::fake(['Hi!']);
+
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $conversationId = $this->createConversation($userA);
+
+        $response = $this->actingAs($userB)->deleteJson("/api/v1/conversations/{$conversationId}");
+
+        $response->assertNotFound();
+    }
+
+    private function createConversation(User $user): string
+    {
+        $id = (string) Str::uuid();
+
+        DB::table('agent_conversations')->insert([
+            'id' => $id,
+            'user_id' => $user->id,
+            'title' => 'Test conversation',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $id;
+    }
+}

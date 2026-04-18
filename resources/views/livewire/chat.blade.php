@@ -1,0 +1,115 @@
+<div class="flex w-full h-full"
+    x-data="chatApp(@js($apiToken), @js($conversations), @js($activeConversationId))"
+    x-init="init()">
+
+    {{-- Sidebar --}}
+    <aside class="w-64 flex-shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <span class="font-semibold text-sm">aiPal</span>
+            <button @click="$store.theme.toggle()"
+                class="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Toggle dark mode">
+                <svg x-show="!$store.theme.dark" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                <svg x-show="$store.theme.dark" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </button>
+        </div>
+
+        <div class="p-3">
+            <button @click="newConversation()"
+                class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                New chat
+            </button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+            <template x-for="conv in conversations" :key="conv.id">
+                <div class="group flex items-center gap-1 rounded-lg px-2 py-1.5 cursor-pointer transition-colors"
+                    :class="activeConversationId === conv.id ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'hover:bg-gray-200 dark:hover:bg-gray-700'"
+                    @click="selectConversation(conv.id)">
+                    <span class="flex-1 text-xs truncate" x-text="conv.title"></span>
+                    <button
+                        class="opacity-0 group-hover:opacity-100 p-0.5 rounded text-gray-400 hover:text-red-500 transition-all"
+                        @click.stop="deleteConversation(conv.id)">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </template>
+        </nav>
+
+        <div class="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
+            <a href="{{ route('settings') }}"
+                class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Settings
+            </a>
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('admin.invitations') }}"
+                class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                Invitations
+            </a>
+            @endif
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Sign out
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    {{-- Main chat area --}}
+    <main class="flex-1 flex flex-col min-w-0">
+        {{-- Messages --}}
+        <div class="flex-1 overflow-y-auto p-4 space-y-4" x-ref="messages">
+            <template x-for="(msg, idx) in messages" :key="idx">
+                <div class="flex gap-3" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+                    <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
+                        :class="msg.role === 'user'
+                            ? 'bg-indigo-600 text-white rounded-br-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'">
+                        <div x-html="renderMarkdown(msg.content)"></div>
+                        <template x-if="msg.streaming">
+                            <span class="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse rounded-sm align-middle"></span>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="messages.length === 0">
+                <div class="flex flex-col items-center justify-center h-full text-center py-16">
+                    <div class="text-4xl mb-4">💬</div>
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Start a conversation</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">Ask me anything — I'm here to help.</p>
+                </div>
+            </template>
+        </div>
+
+        {{-- Input --}}
+        <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+            <form @submit.prevent="sendMessage()" class="flex gap-2 items-end">
+                <textarea
+                    x-model="input"
+                    @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
+                    placeholder="Message aiPal… (Enter to send, Shift+Enter for newline)"
+                    rows="1"
+                    class="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors max-h-40 overflow-y-auto"
+                    :disabled="streaming"
+                    x-ref="messageInput"
+                    @input="$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'">
+                </textarea>
+                <button type="submit"
+                    class="flex-shrink-0 p-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    :disabled="!input.trim() || streaming">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+            </form>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                AI can make mistakes. Verify important information.
+            </p>
+        </div>
+    </main>
+</div>

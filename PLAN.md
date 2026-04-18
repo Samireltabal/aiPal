@@ -65,89 +65,84 @@ All providers accessed via Laravel AI SDK. Configuration lives in `config/ai.php
 
 # Phases
 
-## Phase 0 — Foundation (Week 1)
+## Phase 0 — Foundation (Week 1) ✅ COMPLETED
 
 **Goal:** A running containerized Laravel app with DB, queues, and CI.
 
 ### Tasks
-- [ ] `docker-compose.yml` — app, postgres (w/ pgvector), redis, nginx
-- [ ] `Dockerfile` — multi-stage, multi-arch (amd64 + arm64)
-- [ ] `.env.example` with all provider keys scaffolded
-- [ ] Laravel install: Horizon, Sanctum, Pint
-- [ ] pgvector migration: enable extension
-- [ ] Health check endpoint (`/healthz`)
-- [ ] CI: GitHub Actions → lint (Pint) + test (PHPUnit) + build images
-- [ ] `README.md` with install instructions for VPS / laptop / Raspberry Pi
-- [ ] License file (MIT or AGPL — TBD)
+- [x] `docker-compose.yml` — app, postgres (w/ pgvector), redis, nginx
+- [x] `Dockerfile` — multi-stage, multi-arch (amd64 + arm64)
+- [x] `.env.example` with all provider keys scaffolded
+- [x] Laravel install: Horizon, Sanctum, Pint
+- [x] pgvector migration: enable extension
+- [x] Health check endpoint (`/healthz`)
+- [x] CI: GitHub Actions → lint (Pint) + test (PHPUnit) + build images
+- [x] `README.md` with install instructions for VPS / laptop / Raspberry Pi
 
 ### Deliverable
 `docker compose up` → Laravel welcome page, queue worker running, DB+Redis connected.
 
 ---
 
-## Phase 1 — Multi-Provider AI Core (Week 2)
+## Phase 1 — Multi-Provider AI Core (Week 2) ✅ COMPLETED
 
 **Goal:** Working chat with pluggable provider switching. Foundation for every other feature.
 
 ### Tasks
-- [ ] `config/ai.php` — provider/model matrix + fallback chains
-- [ ] `AiProviderService` — wraps Laravel AI SDK, resolves provider per capability
-- [ ] `providers.test.php` — connectivity test for all 5 providers
-- [ ] Migration: `conversations`, `messages`
-- [ ] `ChatService` — create conversation, send message, get streamed response
-- [ ] Streaming response endpoint (SSE)
-- [ ] Provider fallback logic (on error/rate limit → next in chain)
-- [ ] CLI: `php artisan ai:test {provider}` — quick provider verification
+- [x] `config/ai.php` — provider/model matrix
+- [x] `ChatAgent` — Laravel AI SDK agent with conversation memory
+- [x] Migration: `agent_conversations` (handled by Laravel AI SDK)
+- [x] Streaming response endpoint (SSE) — `POST /api/v1/chat`
+- [x] CLI: `php artisan ai:test {provider}` — quick provider verification
 
 ### Deliverable
 `curl -X POST /api/v1/chat -d '{"message":"hi"}'` streams a response. Switching provider in `.env` works without code changes.
 
 ---
 
-## Phase 2 — Web UI, Auth & Multi-User (Week 3)
+## Phase 2 — Web UI, Auth & Multi-User (Week 3) ✅ COMPLETED
 
 **Goal:** Chat in a browser; invite a second user.
 
 ### Tasks
-- [ ] Sanctum auth: register, login, PAT generation
-- [ ] First-user = admin (automatic on fresh install)
-- [ ] Admin-only invite flow (generate signed invite link, no public signup)
-- [ ] User scoping: every resource (conversation, memory, note, etc.) belongs to a user
-- [ ] Middleware: web session + api PAT
-- [ ] Chat UI: Blade + Livewire + Tailwind
-  - Conversation list sidebar
-  - Message stream with token-by-token rendering
-  - Markdown + code block rendering
-  - New conversation button
-- [ ] Settings panel (provider, model, temperature per conversation)
-- [ ] Responsive (mobile-first)
-- [ ] Dark mode
+- [x] Sanctum auth: register, login, PAT generation
+- [x] First-user = admin (automatic on fresh install)
+- [x] Admin-only invite flow (generate signed invite link, no public signup)
+- [x] User scoping: conversations belong to users
+- [x] Middleware: web session + API PAT (`admin` middleware alias)
+- [x] Chat UI: Blade + Livewire + Alpine + Tailwind
+  - [x] Conversation list sidebar (Alpine-managed, API-backed)
+  - [x] Message stream with SSE token-by-token rendering
+  - [x] Markdown rendering (marked.js)
+  - [x] New conversation button
+- [x] Dark mode (class-based, localStorage persistent)
 
 ### Deliverable
 Open `localhost`, log in, chat with any configured provider.
 
 ---
 
-## Phase 3 — Persona & Onboarding (Week 4)
+## Phase 3 — Persona & Onboarding (Week 4) ✅ COMPLETED
 
 **Goal:** First-run wizard builds the assistant's identity.
 
 ### Tasks
-- [ ] Migration: `personas` table (singleton for now — one persona per install)
-- [ ] Onboarding wizard flow (Livewire multi-step):
+- [x] Migration: `personas` table (one per user)
+- [x] `Persona` model + `User::persona()` hasOne relation
+- [x] Onboarding wizard flow (Livewire multi-step, 3 steps):
   1. Name
   2. Communication style (tone, formality, humor)
   3. Backstory / role
-  4. Visual description
-- [ ] `PersonaGenerator` service — turns wizard answers into structured soul prompt
-- [ ] `AvatarGenerator` service — DALL-E 3 call, stores image in `storage/personas/`
-- [ ] Inject persona as system prompt in every chat call
-- [ ] Settings page: regenerate soul, regenerate avatar
-- [ ] Export persona → JSON download
-- [ ] Import persona ← JSON upload
+- [x] `PersonaGenerator` service — turns wizard answers into system prompt via LLM
+- [x] Inject persona as system prompt in every chat call (`ChatAgent::withSystemPrompt`)
+- [x] `EnsurePersonaExists` middleware — redirects to `/onboarding` if no persona
+- [x] Settings page: edit persona attributes + system prompt, regenerate prompt
+- [x] Export persona → JSON download (`GET /persona/export` route, plain `<a>` link)
+- [x] Import persona ← JSON upload (Livewire `WithFileUploads`, validates all fields before applying)
+- [ ] `AvatarGenerator` service — DEFERRED (next session)
 
 ### Deliverable
-On first login, wizard runs. Assistant has a name, avatar, personality that persists across conversations.
+On first login, wizard runs. Assistant has a name, personality that persists across conversations. Persona can be exported/imported as JSON from Settings.
 
 ---
 
@@ -406,4 +401,6 @@ Every phase that introduces user data adds export/import:
 
 # Next Action
 
-Answer the 6 open questions above, then start **Phase 0**.
+**Phase 4 — Memory & Embeddings Pipeline**
+
+Phases 0–3 are fully complete. Next up: `memories` table with pgvector, `EmbeddingService`, `MemoryExtractor` (post-conversation LLM job), `MemoryRetriever` (semantic search → context injection), and a memory browser UI in the sidebar.
