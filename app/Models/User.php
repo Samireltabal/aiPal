@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'is_admin'])]
+#[Fillable(['name', 'email', 'password', 'is_admin', 'briefing_enabled', 'briefing_time', 'briefing_timezone', 'briefing_last_sent_at', 'telegram_chat_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -23,8 +23,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'briefing_last_sent_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'briefing_enabled' => 'boolean',
         ];
     }
 
@@ -51,5 +53,35 @@ class User extends Authenticatable
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(Reminder::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function googleToken(): HasOne
+    {
+        return $this->hasOne(GoogleToken::class);
+    }
+
+    public function hasGoogleConnected(): bool
+    {
+        return $this->googleToken()->exists();
+    }
+
+    public function hasTelegramLinked(): bool
+    {
+        return $this->telegram_chat_id !== null;
     }
 }

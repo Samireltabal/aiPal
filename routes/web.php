@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\Google\GoogleAuthController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Telegram\TelegramWebhookController;
+use App\Http\Controllers\Voice\TranscribeController;
+use App\Http\Controllers\Voice\TtsController;
 use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -8,11 +12,15 @@ use App\Livewire\Chat;
 use App\Livewire\Documents;
 use App\Livewire\Memories;
 use App\Livewire\Onboarding;
+use App\Livewire\Productivity;
 use App\Livewire\Settings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', HealthController::class)->name('health');
+
+// Telegram webhook — no auth, CSRF excluded in bootstrap/app.php
+Route::post('/webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', Login::class)->name('login');
@@ -30,11 +38,18 @@ Route::post('/logout', function () {
 Route::middleware('auth')->group(function (): void {
     Route::get('/onboarding', Onboarding::class)->name('onboarding');
 
+    Route::get('/google/auth', [GoogleAuthController::class, 'redirect'])->name('google.auth');
+    Route::get('/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+    Route::delete('/google/disconnect', [GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
+
     Route::middleware('persona')->group(function (): void {
         Route::get('/', Chat::class)->name('chat');
+        Route::post('/voice/transcribe', TranscribeController::class)->name('voice.transcribe');
+        Route::post('/voice/tts', TtsController::class)->name('voice.tts');
         Route::get('/settings', Settings::class)->name('settings');
         Route::get('/memories', Memories::class)->name('memories');
         Route::get('/documents', Documents::class)->name('documents');
+        Route::get('/productivity', Productivity::class)->name('productivity');
         Route::get('/memories/export', function () {
             $user = Auth::user();
             $memories = $user->memories()->latest()->get(['content', 'source', 'created_at']);

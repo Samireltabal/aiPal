@@ -1,5 +1,5 @@
 <div class="flex w-full h-full"
-    x-data="chatApp(@js($apiToken), @js($conversations), @js($activeConversationId))"
+    x-data="chatApp(@js($apiToken), @js($conversations), @js($activeConversationId), @js(route('voice.transcribe')), @js(route('voice.tts')))"
     x-init="init()">
 
     {{-- Sidebar --}}
@@ -53,6 +53,11 @@
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Documents
             </a>
+            <a href="{{ route('productivity') }}"
+                class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Productivity
+            </a>
             <a href="{{ route('settings') }}"
                 class="flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -90,6 +95,14 @@
                         <template x-if="msg.streaming">
                             <span class="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse rounded-sm align-middle"></span>
                         </template>
+                        <template x-if="msg.role === 'assistant' && !msg.streaming && msg.content">
+                            <button @click="speak(msg.content)"
+                                class="mt-1.5 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                                title="Read aloud">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M9.172 9.172a4 4 0 000 5.656"/></svg>
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18h.01"/></svg>
+                            </button>
+                        </template>
                     </div>
                 </div>
             </template>
@@ -106,16 +119,42 @@
         {{-- Input --}}
         <div class="border-t border-gray-200 dark:border-gray-700 p-4">
             <form @submit.prevent="sendMessage()" class="flex gap-2 items-end">
+                {{-- Mic button --}}
+                <button type="button"
+                    @mousedown="startRecording()" @mouseup="stopRecording()" @touchstart.prevent="startRecording()" @touchend.prevent="stopRecording()"
+                    class="flex-shrink-0 p-3 rounded-xl border transition-colors"
+                    :class="recording
+                        ? 'bg-red-500 border-red-500 text-white animate-pulse'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500'"
+                    :disabled="streaming || transcribing"
+                    title="Hold to record voice">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                </button>
+
                 <textarea
                     x-model="input"
                     @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
-                    placeholder="Message aiPal… (Enter to send, Shift+Enter for newline)"
+                    :placeholder="transcribing ? 'Transcribing…' : 'Message aiPal… (Enter to send, Shift+Enter for newline)'"
                     rows="1"
                     class="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors max-h-40 overflow-y-auto"
-                    :disabled="streaming"
+                    :disabled="streaming || transcribing"
                     x-ref="messageInput"
                     @input="$el.style.height='auto'; $el.style.height=$el.scrollHeight+'px'">
                 </textarea>
+
+                {{-- TTS toggle --}}
+                <button type="button" @click="ttsEnabled = !ttsEnabled; saveTtsPreference()"
+                    class="flex-shrink-0 p-3 rounded-xl border transition-colors"
+                    :class="ttsEnabled
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-400'"
+                    title="Toggle auto-speak responses">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.07 4.929a10 10 0 010 14.142"/>
+                    </svg>
+                </button>
+
                 <button type="submit"
                     class="flex-shrink-0 p-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     :disabled="!input.trim() || streaming">

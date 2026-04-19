@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents\Chat;
 
-use App\Ai\Tools\SearchKnowledgeBase;
+use App\Ai\Services\ToolRegistry;
 use App\Models\User;
-use App\Services\EmbeddingService;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -49,8 +48,6 @@ class ChatAgent implements Agent, Conversational, HasTools
             return [];
         }
 
-        return [
-            new SearchKnowledgeBase($this->user, app(EmbeddingService::class)),
-        ];
+        return app(ToolRegistry::class)->forUser($this->user);
     }
 }

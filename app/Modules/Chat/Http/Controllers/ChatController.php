@@ -10,6 +10,7 @@ use App\Jobs\ExtractMemoriesJob;
 use App\Modules\Chat\Http\Requests\ChatRequest;
 use App\Services\MemoryRetriever;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -78,6 +79,7 @@ class ChatController extends Controller
 
                 ExtractMemoriesJob::dispatch($user->id, $conversationId);
             } catch (\Throwable $e) {
+                Log::error('ChatAgent stream error', ['message' => $e->getMessage()]);
                 echo 'event: error'."\n";
                 echo 'data: '.json_encode(['message' => $e->getMessage()])."\n\n";
             } finally {

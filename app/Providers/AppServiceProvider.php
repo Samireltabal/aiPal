@@ -16,5 +16,6 @@ class AppServiceProvider extends ServiceProvider
                 AiTestCommand::class,
             ]);
         }
+
     }
 }

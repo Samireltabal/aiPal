@@ -9,23 +9,51 @@ use App\Models\DocumentChunk;
 use App\Models\User;
 use App\Services\EmbeddingService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
-class SearchKnowledgeBase implements Tool
+class SearchKnowledgeBase extends AiTool
 {
     public function __construct(
         private readonly User $user,
         private readonly EmbeddingService $embeddings,
     ) {}
 
+    public static function toolName(): string
+    {
+        return 'search_knowledge_base';
+    }
+
+    public static function toolLabel(): string
+    {
+        return 'Search Knowledge Base';
+    }
+
+    public static function toolCategory(): string
+    {
+        return 'knowledge';
+    }
+
+    protected function userId(): ?int
+    {
+        return $this->user->id;
+    }
+
     public function description(): Stringable|string
     {
         return 'Search the user\'s uploaded knowledge base documents for relevant information. Use this when the user asks about something that may be covered in their documents or uploaded files.';
     }
 
-    public function handle(Request $request): Stringable|string
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'query' => $schema->string()
+                ->description('The search query to find relevant content in the knowledge base.')
+                ->required(),
+        ];
+    }
+
+    protected function execute(Request $request): Stringable|string
     {
         $query = $request['query'];
 
@@ -54,14 +82,5 @@ class SearchKnowledgeBase implements Tool
         return $chunks
             ->map(fn (DocumentChunk $chunk) => "Source: {$chunk->document->name}\n{$chunk->content}")
             ->join("\n\n---\n\n");
-    }
-
-    public function schema(JsonSchema $schema): array
-    {
-        return [
-            'query' => $schema->string()
-                ->description('The search query to find relevant content in the knowledge base.')
-                ->required(),
-        ];
     }
 }

@@ -12,13 +12,20 @@ document.addEventListener('alpine:init', () => {
         },
     });
 
-    Alpine.data('chatApp', (token, initialConversations, initialConversationId) => ({
+    Alpine.data('chatApp', (token, initialConversations, initialConversationId, transcribeUrl, ttsUrl) => ({
         token,
         input: '',
         messages: [],
         streaming: false,
         conversations: initialConversations ?? [],
         activeConversationId: initialConversationId ?? null,
+
+        recording: false,
+        transcribing: false,
+        mediaRecorder: null,
+        audioChunks: [],
+        ttsEnabled: localStorage.getItem('ttsEnabled') === 'true',
+        currentAudio: null,
 
         init() {
             this.$watch('activeConversationId', (id) => {
@@ -148,6 +155,9 @@ document.addEventListener('alpine:init', () => {
                             } else if (eventType === 'done') {
                                 this.activeConversationId = payload.conversation_id;
                                 this.loadConversations();
+                                if (this.ttsEnabled && this.messages[assistantIndex]?.content) {
+                                    this.speak(this.messages[assistantIndex].content);
+                                }
                             } else if (eventType === 'error') {
                                 this.messages[assistantIndex].content = '⚠️ ' + payload.message;
                             }
@@ -171,6 +181,93 @@ document.addEventListener('alpine:init', () => {
         scrollToBottom() {
             const el = this.$refs.messages;
             if (el) el.scrollTop = el.scrollHeight;
+        },
+
+        saveTtsPreference() {
+            localStorage.setItem('ttsEnabled', this.ttsEnabled ? 'true' : 'false');
+        },
+
+        async startRecording() {
+            if (this.recording || this.streaming) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.audioChunks = [];
+                this.mediaRecorder = new MediaRecorder(stream);
+                this.mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) this.audioChunks.push(e.data);
+                };
+                this.mediaRecorder.start();
+                this.recording = true;
+            } catch (_) {
+                alert('Microphone access denied. Please allow microphone access to use voice input.');
+            }
+        },
+
+        async stopRecording() {
+            if (!this.recording || !this.mediaRecorder) return;
+            this.recording = false;
+            this.transcribing = true;
+
+            await new Promise((resolve) => {
+                this.mediaRecorder.onstop = resolve;
+                this.mediaRecorder.stop();
+                this.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+            });
+
+            try {
+                const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+                const blob = new Blob(this.audioChunks, { type: mimeType });
+                const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+                const form = new FormData();
+                form.append('audio', blob, `recording.${ext}`);
+                form.append('_token', document.querySelector('meta[name="csrf-token"]')?.content ?? '');
+
+                const res = await fetch(transcribeUrl, { method: 'POST', body: form });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.transcript) {
+                        this.input = (this.input + ' ' + data.transcript).trim();
+                        this.$nextTick(() => {
+                            const ta = this.$refs.messageInput;
+                            if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+                        });
+                    }
+                }
+            } catch (_) {}
+
+            this.transcribing = false;
+            this.mediaRecorder = null;
+            this.audioChunks = [];
+        },
+
+        async speak(text) {
+            if (this.currentAudio) {
+                this.currentAudio.pause();
+                this.currentAudio = null;
+            }
+
+            const plain = text.replace(/<[^>]+>/g, '').replace(/[*_`#>]/g, '').trim();
+            if (!plain) return;
+
+            try {
+                const res = await fetch(ttsUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify({ text: plain }),
+                });
+
+                if (!res.ok) return;
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                this.currentAudio = new Audio(url);
+                this.currentAudio.onended = () => { URL.revokeObjectURL(url); this.currentAudio = null; };
+                this.currentAudio.play();
+            } catch (_) {}
         },
     }));
 });

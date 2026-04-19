@@ -185,101 +185,103 @@ Upload a markdown or code file. Ask "what does the spec say about auth?" — the
 
 ---
 
-## Phase 6 — Voice (STT + TTS) (Week 7)
+## Phase 6 — Voice (STT + TTS) (Week 7) ✅ COMPLETED
 
 **Goal:** Talk to the assistant, hear it back.
 
 ### Tasks
-- [ ] Browser audio recorder (MediaRecorder API, push-to-talk)
-- [ ] Upload endpoint: audio → Whisper → transcript
-- [ ] TTS endpoint: text → audio stream (OpenAI TTS default, ElevenLabs option)
-- [ ] UI: mic button on chat input, play button on responses
-- [ ] Per-session TTS toggle
-- [ ] Persona voice selection (OpenAI TTS voices / ElevenLabs voice cloning)
+- [x] Browser audio recorder (MediaRecorder API, push-to-talk)
+- [x] Upload endpoint: audio → Whisper → transcript
+- [x] TTS endpoint: text → audio stream (OpenAI TTS default, ElevenLabs option)
+- [x] UI: mic button on chat input, play button on responses
+- [x] Per-session TTS toggle
+- [x] Persona voice selection (OpenAI TTS voices / ElevenLabs voice cloning)
 
 ### Deliverable
 Click mic → speak → transcript appears → response played back in persona's voice.
 
 ---
 
-## Phase 7 — Notes & Reminders & Tasks (Week 8)
+## Phase 7 — Notes & Reminders & Tasks (Week 8) ✅ COMPLETED
 
 **Goal:** Core productivity features via natural language.
 
 ### Tasks
-- [ ] Migration: `notes`, `reminders`, `tasks`
-- [ ] Notes: CRUD + embeddings for semantic search
-- [ ] Reminders: natural language parsing ("remind me tomorrow at 9am")
-  - `ReminderParser` (LLM with structured output)
-  - Scheduled job: `DispatchRemindersJob` runs every minute
-  - Pluggable delivery channels via `ReminderChannel` interface:
-    - `EmailChannel` (Laravel Mail)
-    - `TelegramChannel` (Bot API)
-    - `WhatsAppChannel` (wired up in Phase 10)
-    - `WebhookChannel` (user-defined URL, POST JSON payload)
-  - Per-reminder channel selection + per-user default channels
-- [ ] Tasks: CRUD + priority + due date
-- [ ] AI tools: `create_note`, `search_notes`, `create_reminder`, `create_task`, `list_tasks`
-- [ ] UI: sidebar with notes/reminders/tasks tabs
+- [x] Migration: `notes`, `reminders`, `tasks`
+- [x] Notes: CRUD + embeddings for semantic search
+- [x] Reminders: natural language parsing via `ReminderParserAgent` (structured output)
+  - [x] Scheduled command: `reminders:dispatch` runs every minute via `withoutOverlapping()`
+  - [x] `EmailChannel` (Laravel Mail via `ReminderNotification`)
+  - [x] `WebhookChannel` (user-defined URL, POST JSON payload)
+  - [x] Per-reminder channel selection
+- [x] Tasks: CRUD + priority + due date + complete/uncomplete
+- [x] AI tools: `CreateNote`, `SearchNotes`, `CreateReminder`, `CreateTask`, `ListTasks` injected into `ChatAgent`
+- [x] UI: `/productivity` Livewire page with Tasks / Reminders / Notes tabs
 
 ### Deliverable
 "Remind me to review PR tomorrow at 9am" → reminder created → notification delivered at 9am.
 
 ---
 
-## Phase 8 — Pluggable Tool System (Week 9)
+## Phase 8 — Pluggable Tool System (Week 9) ✅ COMPLETED
 
 **Goal:** Formalize the tool architecture so integrations plug in cleanly.
 
 ### Tasks
-- [ ] `AiTool` interface + base class
-- [ ] Tool registry (auto-discovery via `app/AiTools/` namespace)
-- [ ] JSON schema generation from PHP attributes
-- [ ] Tool execution pipeline with permission checks
-- [ ] Refactor Phase 4–7 tools into the new interface
-- [ ] Tool enable/disable UI in settings
-- [ ] Per-tool rate limiting & logging
+- [x] `AiTool` abstract base class (extends `Laravel\Ai\Contracts\Tool`, adds metadata + execution logging)
+- [x] Tool registry (`ToolRegistry`) — auto-discovery via `app/Ai/Tools/*.php` filesystem scan
+- [x] JSON schema generation — inherited from Laravel AI SDK `Tool` contract
+- [x] Tool execution logging (`tool_executions` table) — hooked in `AiTool::handle()`
+- [x] Refactor Phase 4–7 tools into `AiTool` base
+- [x] Tool enable/disable UI in settings (toggle switches per tool, grouped by category)
+- [x] Per-tool enable/disable via `user_tool_settings` table; disabled tools excluded from `ChatAgent`
 
 ### Deliverable
-Adding a new tool = creating one class in `app/AiTools/`. No core changes needed.
+Adding a new tool = creating one class in `app/Ai/Tools/` that extends `AiTool`. No core changes needed.
 
 ---
 
-## Phase 9 — Daily Briefing & Calendar (Week 10)
+## Phase 9 — Daily Briefing & Calendar (Week 10) ✅ COMPLETED
 
 **Goal:** Morning summary + calendar awareness.
 
 ### Tasks
-- [ ] Google OAuth integration
-- [ ] Calendar read API (list events, check availability)
-- [ ] `GoogleCalendarTool` (uses Phase 8 interface)
-- [ ] `DailyBriefingJob` — scheduled, generates morning summary
-- [ ] Delivery: email + optional TTS audio + WhatsApp
-- [ ] User-configurable briefing time + content
+- [x] Google OAuth integration (`GoogleToken` model, `GoogleAuthController`, `GoogleClientFactory`)
+- [x] Calendar read API — `GoogleCalendarService` (list events, token refresh)
+- [x] `GoogleCalendarTool` (uses Phase 8 AiTool interface, category: calendar)
+- [x] `DailyBriefingAgent` + `DailyBriefingJob` — scheduled job generates morning summary
+- [x] Delivery: email via `DailyBriefingNotification`
+- [x] User-configurable: enable/disable, delivery time, timezone (Settings page)
+- [x] Google Calendar connect/disconnect from Settings
+- [x] Scheduler: everyMinute check dispatches job at configured time per user
+- [x] Docs: `docs/google-oauth-setup.md`
 
 ### Deliverable
 Every morning at your configured time, you get a summary of today's tasks, events, and anything flagged.
 
 ---
 
-## Phase 10 — Messaging Bots: WhatsApp + Telegram (Week 11)
+## Phase 10 — Messaging Bots: WhatsApp + Telegram (Week 11) 🔄 PARTIAL
 
 **Goal:** Chat with the assistant from WhatsApp and Telegram.
 
 ### Tasks
-- [ ] `MessagingChannel` interface (abstract over WhatsApp + Telegram)
-- [ ] Webhook endpoints: `/webhooks/whatsapp`, `/webhooks/telegram`
-- [ ] WhatsApp: Twilio + Meta Cloud API (pick one per install)
-- [ ] Telegram: Bot API (token from @BotFather)
-- [ ] Message → conversation routing (map phone/chat_id → user)
-- [ ] Send reply via respective API
-- [ ] Support text, voice notes (STT pipeline), images
-- [ ] Rate limiting per sender
-- [ ] Wire up `WhatsAppChannel` + `TelegramChannel` for reminder delivery
+- [x] `MessagingChannel` interface (`app/Contracts/MessagingChannel.php`)
+- [x] Webhook endpoint: `POST /webhooks/telegram` (CSRF excluded, secret-token validated)
+- [x] Telegram: Bot API (`TelegramService`) — sendMessage, setWebhook, deleteWebhook
+- [x] Message → conversation routing (telegram_chat_id → user, `/start` returns chat ID)
+- [x] Send reply via Telegram Bot API
+- [x] Rate limiting: 10 messages/minute per chat_id
+- [x] `TelegramChannel` notification channel — reminder delivery via Telegram
+- [x] Settings UI: Telegram chat ID link/unlink
+- [x] `telegram:set-webhook` artisan command
+- [ ] WhatsApp: Twilio or Meta Cloud API — **next session**
+- [ ] `/webhooks/whatsapp` webhook endpoint
+- [ ] Support voice notes (STT pipeline) in Telegram/WhatsApp
 - [ ] Setup guide in docs (per provider)
 
 ### Deliverable
-Send a WhatsApp or Telegram message → assistant responds with full memory/tool access. Reminders can be delivered to either.
+Send a Telegram message → assistant responds with full memory/tool access. Reminders delivered to Telegram. WhatsApp pending.
 
 ---
 

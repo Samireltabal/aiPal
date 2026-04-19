@@ -6,8 +6,8 @@ use App\Providers\AppServiceProvider;
 use App\Providers\HorizonServiceProvider;
 
 return [
+    ChatServiceProvider::class,
+    CoreServiceProvider::class,
     AppServiceProvider::class,
     HorizonServiceProvider::class,
-    CoreServiceProvider::class,
-    ChatServiceProvider::class,
 ];

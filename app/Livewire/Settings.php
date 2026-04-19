@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Ai\Services\ToolRegistry;
 use App\Jobs\GenerateAvatarJob;
+use App\Models\UserToolSetting;
 use App\Services\PersonaGenerator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -33,6 +35,9 @@ class Settings extends Component
     #[Validate('nullable|string|max:500')]
     public string $backstory = '';
 
+    #[Validate('required|in:alloy,ash,coral,echo,fable,onyx,nova,shimmer')]
+    public string $ttsVoice = 'alloy';
+
     public string $systemPrompt = '';
 
     public bool $regenerating = false;
@@ -50,9 +55,27 @@ class Settings extends Component
 
     public bool $avatarQueued = false;
 
+    public bool $toolSaved = false;
+
+    public bool $briefingEnabled = false;
+
+    #[Validate('required|date_format:H:i,H:i:s')]
+    public string $briefingTime = '08:00';
+
+    #[Validate('required|timezone')]
+    public string $briefingTimezone = 'UTC';
+
+    public bool $briefingSaved = false;
+
+    #[Validate('nullable|string|regex:/^\d+$/')]
+    public ?string $telegramChatId = null;
+
+    public bool $telegramSaved = false;
+
     public function mount(): void
     {
-        $persona = Auth::user()->persona;
+        $user = Auth::user();
+        $persona = $user->persona;
 
         if ($persona) {
             $this->assistantName = $persona->assistant_name;
@@ -60,8 +83,15 @@ class Settings extends Component
             $this->formality = $persona->formality;
             $this->humorLevel = $persona->humor_level;
             $this->backstory = $persona->backstory ?? '';
+            $this->ttsVoice = $persona->tts_voice ?? 'alloy';
             $this->systemPrompt = $persona->system_prompt;
         }
+
+        $this->briefingEnabled = (bool) $user->briefing_enabled;
+        $this->briefingTime = substr($user->briefing_time ?? '08:00', 0, 5);
+        $this->briefingTimezone = $user->briefing_timezone ?? 'UTC';
+
+        $this->telegramChatId = $user->telegram_chat_id;
     }
 
     public function regenerate(): void
@@ -98,11 +128,57 @@ class Settings extends Component
             'formality' => $this->formality,
             'humor_level' => $this->humorLevel,
             'backstory' => $this->backstory,
+            'tts_voice' => $this->ttsVoice,
             'system_prompt' => $this->systemPrompt,
         ]);
 
         $this->saved = true;
         $this->dispatch('saved');
+    }
+
+    public function toggleTool(string $toolName): void
+    {
+        $userId = Auth::id();
+
+        $setting = UserToolSetting::query()
+            ->where('user_id', $userId)
+            ->where('tool', $toolName)
+            ->first();
+
+        if ($setting) {
+            $setting->update(['enabled' => ! $setting->enabled]);
+        } else {
+            UserToolSetting::create([
+                'user_id' => $userId,
+                'tool' => $toolName,
+                'enabled' => false,
+            ]);
+        }
+
+        $this->toolSaved = true;
+    }
+
+    public function saveTelegramSettings(): void
+    {
+        $this->validateOnly('telegramChatId');
+
+        Auth::user()->update(['telegram_chat_id' => $this->telegramChatId ?: null]);
+
+        $this->telegramSaved = true;
+    }
+
+    public function saveBriefingSettings(): void
+    {
+        $this->validateOnly('briefingTime');
+        $this->validateOnly('briefingTimezone');
+
+        Auth::user()->update([
+            'briefing_enabled' => $this->briefingEnabled,
+            'briefing_time' => $this->briefingTime,
+            'briefing_timezone' => $this->briefingTimezone,
+        ]);
+
+        $this->briefingSaved = true;
     }
 
     public function import(): void
@@ -185,8 +261,14 @@ class Settings extends Component
 
     public function render(): View
     {
+        $user = Auth::user();
+        $tools = app(ToolRegistry::class)->allWithSettings($user);
+
         return view('livewire.settings', [
             'avatarUrl' => $this->resolveAvatarUrl(),
+            'tools' => $tools->groupBy('category'),
+            'googleConnected' => $user->hasGoogleConnected(),
+            'telegramLinked' => $user->hasTelegramLinked(),
         ]);
     }
 
