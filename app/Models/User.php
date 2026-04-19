@@ -42,4 +42,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Invitation::class, 'created_by');
     }
+
+    public function memories(): HasMany
+    {
+        return $this->hasMany(Memory::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
 }

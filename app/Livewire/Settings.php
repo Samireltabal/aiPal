@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Jobs\GenerateAvatarJob;
 use App\Services\PersonaGenerator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -44,6 +45,10 @@ class Settings extends Component
     public string $importError = '';
 
     public bool $importSuccess = false;
+
+    public bool $generatingAvatar = false;
+
+    public bool $avatarQueued = false;
 
     public function mount(): void
     {
@@ -166,8 +171,29 @@ class Settings extends Component
         $this->importSuccess = true;
     }
 
+    public function generateAvatar(): void
+    {
+        $persona = Auth::user()->persona;
+
+        if (! $persona) {
+            return;
+        }
+
+        GenerateAvatarJob::dispatch($persona->id);
+        $this->avatarQueued = true;
+    }
+
     public function render(): View
     {
-        return view('livewire.settings');
+        return view('livewire.settings', [
+            'avatarUrl' => $this->resolveAvatarUrl(),
+        ]);
+    }
+
+    private function resolveAvatarUrl(): ?string
+    {
+        $path = Auth::user()->persona?->avatar_path;
+
+        return $path ? asset('storage/'.$path) : null;
     }
 }

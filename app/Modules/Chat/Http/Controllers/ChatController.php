@@ -6,13 +6,17 @@ namespace App\Modules\Chat\Http\Controllers;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Http\Controllers\Controller;
+use App\Jobs\ExtractMemoriesJob;
 use App\Modules\Chat\Http\Requests\ChatRequest;
+use App\Services\MemoryRetriever;
 use Illuminate\Http\Response;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChatController extends Controller
 {
+    public function __construct(private readonly MemoryRetriever $memories) {}
+
     /**
      * Stream a chat response via Server-Sent Events.
      *
@@ -24,11 +28,20 @@ class ChatController extends Controller
     public function __invoke(ChatRequest $request): StreamedResponse
     {
         $user = $request->user();
+        $message = $request->input('message');
         $agent = new ChatAgent;
 
-        if ($persona = $user->persona) {
-            $agent->withSystemPrompt($persona->system_prompt);
-        }
+        $systemPrompt = $user->persona?->system_prompt
+            ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.';
+
+        $memoryContext = $this->memories->buildContextBlock($user, $message);
+
+        $kbHint = $user->documents()->where('status', 'ready')->exists()
+            ? "\n\nYou have access to the user's personal knowledge base via the search_knowledge_base tool. Use it proactively when the user asks about anything that might be covered in their uploaded documents."
+            : '';
+
+        $agent->withSystemPrompt($systemPrompt.$memoryContext.$kbHint);
+        $agent->withUser($user);
 
         if ($conversationId = $request->input('conversation_id')) {
             $agent->continue($conversationId, as: $user);
@@ -38,11 +51,10 @@ class ChatController extends Controller
 
         $provider = $request->input('provider') ?: null;
         $model = $request->input('model') ?: null;
-        $message = $request->input('message');
 
         $stream = $agent->stream($message, provider: $provider, model: $model);
 
-        return response()->stream(function () use ($agent, $stream): void {
+        return response()->stream(function () use ($agent, $stream, $user): void {
             $flush = static function (): void {
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -59,8 +71,12 @@ class ChatController extends Controller
                     }
                 }
 
+                $conversationId = $agent->currentConversation();
+
                 echo 'event: done'."\n";
-                echo 'data: '.json_encode(['conversation_id' => $agent->currentConversation()])."\n\n";
+                echo 'data: '.json_encode(['conversation_id' => $conversationId])."\n\n";
+
+                ExtractMemoriesJob::dispatch($user->id, $conversationId);
             } catch (\Throwable $e) {
                 echo 'event: error'."\n";
                 echo 'data: '.json_encode(['message' => $e->getMessage()])."\n\n";

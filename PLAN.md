@@ -146,40 +146,42 @@ On first login, wizard runs. Assistant has a name, personality that persists acr
 
 ---
 
-## Phase 4 — Memory & Embeddings Pipeline (Week 5)
+## Phase 4 — Memory & Embeddings Pipeline (Week 5) ✅ COMPLETED
 
 **Goal:** The assistant remembers you.
 
 ### Tasks
-- [ ] Migration: `memories` table with `vector(1536)` column (pgvector)
-- [ ] `EmbeddingService` — chunk + embed text via configured provider
-- [ ] `MemoryExtractor` — after each conversation, extract durable facts (LLM call)
-- [ ] `MemoryRetriever` — semantic search over memories, inject top-k into context
-- [ ] Queue job: `ExtractMemoriesJob` runs async after conversations
-- [ ] UI: memory browser (list, search, edit, delete memories)
-- [ ] Export memories → JSON
-- [ ] Import memories ← JSON (re-embeds on import)
+- [x] Migration: `memories` table with `vector(1536)` column (pgvector)
+- [x] `EmbeddingService` — embed text via OpenAI `text-embedding-3-small`
+- [x] `MemoryExtractorAgent` — structured output agent, extracts durable facts post-conversation
+- [x] `MemoryRetriever` — semantic search via `whereVectorSimilarTo`, injects top-k into system prompt
+- [x] Queue job: `ExtractMemoriesJob` dispatched after each chat turn
+- [x] UI: `/memories` Livewire page — list, search, delete memories
+- [x] Export memories → JSON (`GET /memories/export`)
+- [x] Import memories ← JSON (re-embeds on import, deduplicates)
 
 ### Deliverable
 Tell the assistant "I'm a backend engineer, I use Laravel." New conversation later — it knows this without being told again.
 
 ---
 
-## Phase 5 — RAG & Knowledge Base (Week 6)
+## Phase 5 — RAG & Knowledge Base (Week 6) ✅ COMPLETED
 
 **Goal:** Upload your own docs, ask questions over them.
 
 ### Tasks
-- [ ] Migration: `documents`, `document_chunks` (with embeddings)
-- [ ] Upload endpoint: PDF, MD, TXT, code files
-- [ ] `DocumentChunker` — split by semantic boundaries
-- [ ] `DocumentIngestionJob` — chunk + embed async
-- [ ] `RagRetriever` — hybrid search (vector + keyword) with reranking
-- [ ] UI: document library, upload, delete, search
-- [ ] Tool call: `search_knowledge_base` injected into chat
+- [x] Migration: `documents`, `document_chunks` (with `vector(1536)` on chunks, SQLite-safe fallback)
+- [x] Upload endpoint: MD, TXT, code files (PHP, JS, Python, Go, etc.) — max 20 MB
+- [x] `DocumentParser` — reads and normalizes file content by extension / MIME type
+- [x] `DocumentChunker` — splits by paragraphs, then fixed size with 100-char overlap
+- [x] `DocumentIngestionJob` — chunk + embed async via Horizon (2 tries, 300s timeout)
+- [x] `SearchKnowledgeBase` tool — vector search scoped to user's documents, injected into `ChatAgent`
+- [x] `ChatAgent` implements `HasTools`, receives user via `withUser()`
+- [x] UI: `/documents` Livewire page — upload, list with status, search, delete
+- [x] Documents nav link added to all sidebar pages (chat, memories, settings)
 
 ### Deliverable
-Upload a PDF. Ask "what does the spec say about auth?" Get grounded answer with source citations.
+Upload a markdown or code file. Ask "what does the spec say about auth?" — the assistant searches your knowledge base and cites the source document in its answer.
 
 ---
 
@@ -401,6 +403,6 @@ Every phase that introduces user data adds export/import:
 
 # Next Action
 
-**Phase 4 — Memory & Embeddings Pipeline**
+**Phase 6 — Voice (STT + TTS)**
 
-Phases 0–3 are fully complete. Next up: `memories` table with pgvector, `EmbeddingService`, `MemoryExtractor` (post-conversation LLM job), `MemoryRetriever` (semantic search → context injection), and a memory browser UI in the sidebar.
+Phases 0–5 are complete. Next: browser push-to-talk (MediaRecorder), audio upload → Whisper transcription, TTS endpoint streaming audio back, mic button + play button in chat UI, per-session TTS toggle, and persona voice selection.

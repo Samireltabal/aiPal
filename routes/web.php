@@ -5,6 +5,8 @@ use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Chat;
+use App\Livewire\Documents;
+use App\Livewire\Memories;
 use App\Livewire\Onboarding;
 use App\Livewire\Settings;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +33,25 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('persona')->group(function (): void {
         Route::get('/', Chat::class)->name('chat');
         Route::get('/settings', Settings::class)->name('settings');
+        Route::get('/memories', Memories::class)->name('memories');
+        Route::get('/documents', Documents::class)->name('documents');
+        Route::get('/memories/export', function () {
+            $user = Auth::user();
+            $memories = $user->memories()->latest()->get(['content', 'source', 'created_at']);
+            $data = [
+                'memories' => $memories->map(fn ($m) => [
+                    'content' => $m->content,
+                    'source' => $m->source,
+                    'remembered_at' => $m->created_at?->toIso8601String(),
+                ])->all(),
+                'exported_at' => now()->toIso8601String(),
+            ];
+
+            return response((string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), 200, [
+                'Content-Type' => 'application/json',
+                'Content-Disposition' => 'attachment; filename="memories.json"',
+            ]);
+        })->name('memories.export');
         Route::get('/persona/export', function () {
             $persona = Auth::user()->persona;
             $data = [

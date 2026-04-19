@@ -6,14 +6,25 @@ namespace Tests\Feature\Chat;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\MemoryRetriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Mockery;
 use Tests\TestCase;
 
 class ChatControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $mock = Mockery::mock(MemoryRetriever::class);
+        $mock->allows('buildContextBlock')->andReturn('');
+        $this->app->instance(MemoryRetriever::class, $mock);
+    }
 
     public function test_unauthenticated_request_is_rejected(): void
     {

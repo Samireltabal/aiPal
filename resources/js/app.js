@@ -22,6 +22,7 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             this.$watch('activeConversationId', (id) => {
+                if (this.streaming) return;
                 if (id) {
                     this.loadConversationMessages(id);
                 } else {
@@ -155,9 +156,13 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
             } catch (err) {
-                this.messages[assistantIndex].content = 'Error: ' + err.message;
+                if (this.messages[assistantIndex]) {
+                    this.messages[assistantIndex].content = '⚠️ ' + err.message;
+                }
             } finally {
-                this.messages[assistantIndex].streaming = false;
+                if (this.messages[assistantIndex]) {
+                    this.messages[assistantIndex].streaming = false;
+                }
                 this.streaming = false;
                 this.$refs.messageInput?.focus();
             }

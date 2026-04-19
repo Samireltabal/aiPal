@@ -1,0 +1,26 @@
+services:
+  app:
+    volumes:
+      - ./app:/var/www/html/app
+      - ./config:/var/www/html/config
+      - ./database:/var/www/html/database
+      - ./resources:/var/www/html/resources
+      - ./routes:/var/www/html/routes
+      - ./public/build:/var/www/html/public/build
+      - storage:/var/www/html/storage
+
+  horizon:
+    volumes:
+      - ./app:/var/www/html/app
+      - ./config:/var/www/html/config
+      - ./database:/var/www/html/database
+      - ./resources:/var/www/html/resources
+      - ./routes:/var/www/html/routes
+      - storage:/var/www/html/storage
+
+  scheduler:
+    volumes:
+      - ./app:/var/www/html/app
+      - ./config:/var/www/html/config
+      - ./routes:/var/www/html/routes
+      - storage:/var/www/html/storage
