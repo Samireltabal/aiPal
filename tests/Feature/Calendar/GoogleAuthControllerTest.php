@@ -19,7 +19,7 @@ class GoogleAuthControllerTest extends TestCase
     public function test_redirect_redirects_to_google_auth_url(): void
     {
         $mockClient = Mockery::mock(Client::class);
-        $mockClient->shouldReceive('addScope')->once();
+        $mockClient->shouldReceive('addScope')->times(3);
         $mockClient->shouldReceive('setAccessType')->once();
         $mockClient->shouldReceive('setPrompt')->once();
         $mockClient->shouldReceive('createAuthUrl')->once()->andReturn('https://accounts.google.com/o/oauth2/auth?fake');

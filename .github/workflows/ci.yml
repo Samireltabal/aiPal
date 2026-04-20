@@ -68,8 +68,20 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
 
       - name: Copy .env
         run: cp .env.example .env
