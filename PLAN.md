@@ -285,17 +285,17 @@ Send a Telegram or WhatsApp message → assistant responds with full memory/tool
 
 ---
 
-## Phase 11 — Dev Integrations (Week 12)
+## Phase 11 — Dev Integrations (Week 12) ✅ COMPLETED
 
 **Goal:** GitLab, Jira, Email triage, Code review.
 
 ### Tasks
 - [x] `GitLabTool` — list MRs, summarize, create issues, recent commits
 - [x] `JiraTool` — JQL queries, create/update issues, transitions ✅
-- [ ] `EmailTool` — Gmail API + IMAP; list, summarize, draft replies
-- [ ] `CodeReviewTool` — diff in, structured feedback out
-- [ ] `MeetingNotesTool` — paste notes, extract actions → create tasks
-- [ ] `TerminalHelperTool` — shell command explain/suggest
+- [x] `EmailTool` — Gmail API; list inbox, read email, draft replies ✅
+- [x] `CodeReviewTool` — diff in, structured feedback out ✅
+- [x] `MeetingNotesTool` — paste notes, extract actions → create tasks ✅
+- [x] `TerminalHelperTool` — shell command explain/suggest ✅
 
 ### Deliverable
 "Summarize my open MRs" / "What's in my sprint?" / "Review this diff" all work.
@@ -405,6 +405,6 @@ Every phase that introduces user data adds export/import:
 
 # Next Action
 
-**Phase 6 — Voice (STT + TTS)**
+**Phase 12 — Polish, Docs, v1.0 Release**
 
-Phases 0–5 are complete. Next: browser push-to-talk (MediaRecorder), audio upload → Whisper transcription, TTS endpoint streaming audio back, mic button + play button in chat UI, per-session TTS toggle, and persona voice selection.
+Phases 0–11 are complete. Next: write full README with screenshots, install guides for VPS/laptop/Raspberry Pi, ARCHITECTURE.md, contribution guide, issue/PR templates, changelog, security policy, publish multi-arch Docker images to GHCR, and launch.

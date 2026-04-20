@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Google;
 use App\Models\GoogleToken;
 use App\Services\GoogleClientFactory;
 use Google\Service\Calendar;
+use Google\Service\Gmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,6 +18,8 @@ class GoogleAuthController
     {
         $client = $this->clientFactory->make();
         $client->addScope(Calendar::CALENDAR_READONLY);
+        $client->addScope(Gmail::GMAIL_READONLY);
+        $client->addScope(Gmail::GMAIL_COMPOSE);
         $client->setAccessType('offline');
         $client->setPrompt('consent');
 
