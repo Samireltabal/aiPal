@@ -1,122 +1,131 @@
 # aiPal
 
-A self-hostable, open-source personal assistant built with Laravel 13. Supports multiple AI providers, long-term memory, voice, notes, reminders, calendar, GitLab, Jira, WhatsApp, Telegram, and more.
+A self-hostable, open-source personal AI assistant built with Laravel 13. Talk to it in the browser, via Telegram, or via WhatsApp. It remembers you, knows your documents, manages your tasks, and connects to your calendar.
 
-**License:** AGPL-3.0 | **Stack:** Laravel 13 · PHP 8.4 · PostgreSQL + pgvector · Redis · Livewire
+**License:** AGPL-3.0 · **Repo:** [github.com/Samireltabal/aiPal](https://github.com/Samireltabal/aiPal)
+
+**Stack:** Laravel 13 · PHP 8.4 · PostgreSQL 16 + pgvector · Redis · Livewire · Tailwind v4 · Docker
 
 ---
 
 ## Features
 
-- Multi-provider AI (Anthropic, OpenAI, DeepSeek, xAI, Gemini, Ollama)
-- Long-term memory via pgvector semantic search
-- RAG — chat over your own documents
-- Voice input (STT) and output (TTS)
-- Notes, reminders, tasks, daily briefing
-- Calendar, GitLab, Jira, and email integrations
-- WhatsApp & Telegram bots
-- Persona — name, personality, and AI-generated avatar
-- REST API with personal access tokens
-- Fully self-hostable with Docker
+### AI & Chat
+- Multi-provider AI — Anthropic (Claude), OpenAI (GPT), DeepSeek, xAI (Grok), Gemini, **Ollama (local/offline)**
+- Streaming responses with SSE token-by-token rendering
+- Switch provider and model per conversation
+- Persona — give your assistant a name, personality, and AI-generated avatar
 
-See [FEATURES.md](./FEATURES.md) for the complete feature list.
+### Memory & Knowledge
+- **Long-term memory** — the assistant remembers facts across conversations (pgvector semantic search)
+- **RAG / Knowledge Base** — upload your own documents (MD, TXT, code files) and ask questions over them
+- Memory export/import as JSON
+
+### Voice
+- **Push-to-talk** — speak in the browser, get a transcript (Whisper STT)
+- **Text-to-speech** — assistant replies are read back in your persona's voice (OpenAI TTS / ElevenLabs)
+- Voice notes in **Telegram and WhatsApp** — send a voice message, get a text reply
+
+### Productivity
+- **Notes** — create and search notes by natural language
+- **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
+- **Tasks** — create, prioritize, and complete tasks by chatting
+- **Daily briefing** — morning summary of your day via email, configurable time and timezone
+
+### Integrations
+- **Google Calendar** — read events, include them in daily briefing and chat context
+- **Telegram bot** — full chat with memory and tools, reminders delivered to Telegram
+- **WhatsApp bot** — full chat via Meta Cloud API (no Twilio required), voice notes supported
+- **Webhook channel** — deliver reminders to any URL
+
+### AI Tools (pluggable)
+All tools can be enabled/disabled per user in Settings:
+`SearchKnowledgeBase` · `CreateNote` · `SearchNotes` · `CreateReminder` · `CreateTask` · `ListTasks` · `GoogleCalendar`
+
+### Platform
+- **Multi-user** — invite-only (admin generates signed invite links), each user has isolated memory and persona
+- **REST API** with personal access tokens (Sanctum)
+- **Horizon** dashboard for queue monitoring
+- Fully self-hostable — no cloud accounts required beyond an AI provider key
 
 ---
 
-## Requirements
+## Quick Start (Local)
 
-| | Minimum |
-|---|---|
-| Docker | 24+ with Compose v2 |
-| RAM | 2GB (4GB recommended, 4GB required for Ollama) |
-| Disk | 10GB |
-| AI key | At least one provider key — or use Ollama for fully local/offline use |
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS/Windows) or `curl -fsSL https://get.docker.com | sh` (Linux)
 
----
-
-## Installation
-
-The steps are identical on every platform. Pick your platform below for any prerequisites, then follow the same three-step setup.
-
----
-
-### VPS (DigitalOcean, Hetzner, Linode, etc.)
-
-**Prerequisites:**
 ```bash
-# Install Docker (Ubuntu/Debian)
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER && newgrp docker
+git clone https://github.com/Samireltabal/aiPal.git
+cd aiPal
+cp .env.example .env
 ```
 
-**Setup:**
+Edit `.env` — at minimum set one AI provider key:
+```env
+ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
+OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
+```
+
 ```bash
-git clone https://github.com/your-username/aipal.git
-cd aipal
-cp .env.example .env
-# Edit .env — set APP_URL=http://your-server-ip and add an AI key
 docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
 
-Open `http://your-server-ip` and complete the onboarding wizard.
-
-> **HTTPS on a VPS:** Point a domain at your server and add a reverse proxy (Nginx + Certbot or Caddy) in front of port 80.
+Open **http://localhost** and complete the onboarding wizard.
 
 ---
 
-### Local Laptop (macOS / Linux / Windows)
+## Deploy to a VPS (with HTTPS)
 
-**Prerequisites:**
-- macOS / Windows: install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- Linux: `curl -fsSL https://get.docker.com | sh`
+HTTPS is required for Telegram and WhatsApp webhooks. Caddy handles certificates automatically.
 
-**Setup:**
 ```bash
-git clone https://github.com/your-username/aipal.git
-cd aipal
+git clone https://github.com/Samireltabal/aiPal.git
+cd aiPal
+cp .env.production.example .env
+nano .env   # fill in APP_DOMAIN, ACME_EMAIL, keys, passwords
+```
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Migrations run automatically on startup. Caddy requests a Let's Encrypt certificate on first boot.
+
+**Register webhooks after deploy:**
+```bash
+# Telegram
+docker compose -f docker-compose.prod.yml exec app php artisan telegram:set-webhook
+
+# WhatsApp — register https://yourdomain.com/webhooks/whatsapp in Meta Developer Portal
+```
+
+Full guide: [docs/deploy-vps.md](./docs/deploy-vps.md)
+
+---
+
+## Raspberry Pi (ARM64)
+
+Images are multi-arch — no extra steps needed. Works on Pi 4 and Pi 5.
+
+**Minimum:** Raspberry Pi 4 · 4 GB RAM · 32 GB SD/SSD
+
+```bash
+git clone https://github.com/Samireltabal/aiPal.git
+cd aiPal
 cp .env.example .env
-# Edit .env — add an AI provider key
+# Edit .env — add AI keys, or use Ollama for fully offline
 docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
 
-Open **http://localhost** in your browser.
-
 ---
 
-### Raspberry Pi (ARM64)
+## Fully Offline — Local Models (Ollama)
 
-The Docker images are multi-arch — no special steps needed. Works on Pi 4 and Pi 5.
-
-**Minimum spec:** Raspberry Pi 4 · 4GB RAM · 32GB SD/SSD
-
-**Prerequisites (Raspberry Pi OS):**
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER && newgrp docker
-```
-
-**Setup:**
-```bash
-git clone https://github.com/your-username/aipal.git
-cd aipal
-cp .env.example .env
-# Edit .env — add an AI key, or use Ollama for fully offline (see below)
-docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-```
-
-Open `http://raspberrypi.local` (or the Pi's IP) from another device on the network.
-
----
-
-## Local Models — Fully Offline (Ollama)
-
-Works on any platform. Required for air-gapped or internet-free setups.
+Run with no internet and no cloud AI keys, on any platform including Raspberry Pi.
 
 ```bash
 docker compose --profile ollama up -d
@@ -125,11 +134,22 @@ docker compose exec ollama ollama pull nomic-embed-text
 ```
 
 Set in `.env`:
-```
+```env
 AI_DEFAULT_PROVIDER=ollama
 ```
 
-> On Raspberry Pi 4 (4GB RAM), run a smaller model: `ollama pull llama3.2:1b`
+> On Pi 4 (4 GB RAM) use a smaller model: `ollama pull llama3.2:1b`
+
+---
+
+## Setup Guides
+
+| Integration | Guide |
+|---|---|
+| Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
+| WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
+| Google Calendar | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
+| VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
 
 ---
 
@@ -139,17 +159,14 @@ AI_DEFAULT_PROVIDER=ollama
 composer run dev
 ```
 
-This starts: Laravel dev server, queue worker, Pail log viewer, and Vite in one command.
+Starts Laravel dev server, queue worker, Pail log viewer, and Vite — all in one terminal.
 
-**Run tests:**
 ```bash
-php artisan test --compact
+php artisan test --compact   # run tests
+vendor/bin/pint              # format code
 ```
 
-**Format code:**
-```bash
-vendor/bin/pint
-```
+**Requirements:** PHP 8.4, Composer 2, Node 22, PostgreSQL 16 with pgvector, Redis 7
 
 ---
 
@@ -161,21 +178,25 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data 
 
 ## Roadmap
 
-See [PLAN.md](./PLAN.md) for the full 13-phase build plan.
+Phases 0–10 complete. Remaining:
+
+- **Phase 11** — Dev integrations (GitLab, Jira, Email triage, Code review tools)
+- **Phase 12** — Polish, docs, v1.0 release
+
+See [PLAN.md](./PLAN.md) for the full plan.
 
 ---
 
 ## Contributing
 
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Follow the module structure in `app/Modules/`
-4. Write tests (80%+ coverage required)
-5. Run `vendor/bin/pint` before committing
-6. Open a PR against `develop`
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Write tests (80%+ coverage required)
+4. Run `vendor/bin/pint` before committing
+5. Open a PR against `main`
 
 ---
 
 ## License
 
-[AGPL-3.0](./LICENSE) — you can use, modify, and self-host freely. If you run a modified version as a service, you must publish your changes.
+[AGPL-3.0](./LICENSE) — free to use, modify, and self-host. If you run a modified version as a public service, you must publish your changes.
