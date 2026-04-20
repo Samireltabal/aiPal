@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Services\GmailService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Tools\Request;
-use RuntimeException;
 use Stringable;
 
 class GmailTool extends AiTool
@@ -80,8 +79,8 @@ class GmailTool extends AiTool
                 'draft' => $this->draftReply($request),
                 default => 'Unknown action.',
             };
-        } catch (RuntimeException $e) {
-            return $e->getMessage();
+        } catch (\Throwable $e) {
+            return 'Gmail is unavailable: '.$e->getMessage();
         }
     }
 
