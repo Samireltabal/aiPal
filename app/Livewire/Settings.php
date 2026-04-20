@@ -72,6 +72,11 @@ class Settings extends Component
 
     public bool $telegramSaved = false;
 
+    #[Validate('nullable|string|regex:/^\d+$/|max:15')]
+    public ?string $whatsappPhone = null;
+
+    public bool $whatsappSaved = false;
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -92,6 +97,7 @@ class Settings extends Component
         $this->briefingTimezone = $user->briefing_timezone ?? 'UTC';
 
         $this->telegramChatId = $user->telegram_chat_id;
+        $this->whatsappPhone = $user->whatsapp_phone;
     }
 
     public function regenerate(): void
@@ -165,6 +171,15 @@ class Settings extends Component
         Auth::user()->update(['telegram_chat_id' => $this->telegramChatId ?: null]);
 
         $this->telegramSaved = true;
+    }
+
+    public function saveWhatsAppSettings(): void
+    {
+        $this->validateOnly('whatsappPhone');
+
+        Auth::user()->update(['whatsapp_phone' => $this->whatsappPhone ?: null]);
+
+        $this->whatsappSaved = true;
     }
 
     public function saveBriefingSettings(): void

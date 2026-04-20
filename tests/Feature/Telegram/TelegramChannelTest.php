@@ -46,7 +46,7 @@ class TelegramChannelTest extends TestCase
         $telegram = Mockery::mock(TelegramService::class);
         $telegram->shouldReceive('send')
             ->once()
-            ->with('55555', Mockery::containsString('Take meds'));
+            ->withArgs(fn ($to, $msg) => $to === '55555' && str_contains($msg, 'Take meds'));
 
         $this->app->instance(TelegramService::class, $telegram);
 

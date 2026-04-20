@@ -7,6 +7,7 @@ namespace App\Notifications;
 use App\Models\Reminder;
 use App\Notifications\Channels\TelegramChannel;
 use App\Notifications\Channels\WebhookChannel;
+use App\Notifications\Channels\WhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,6 +26,7 @@ class ReminderNotification extends Notification implements ShouldQueue
         return match ($this->reminder->channel) {
             'webhook' => [WebhookChannel::class],
             'telegram' => [TelegramChannel::class],
+            'whatsapp' => [WhatsAppChannel::class],
             default => ['mail'],
         };
     }
@@ -40,6 +42,13 @@ class ReminderNotification extends Notification implements ShouldQueue
     }
 
     public function toTelegram(object $notifiable): string
+    {
+        $body = $this->reminder->body ? "\n{$this->reminder->body}" : '';
+
+        return "⏰ *Reminder:* {$this->reminder->title}{$body}";
+    }
+
+    public function toWhatsApp(object $notifiable): string
     {
         $body = $this->reminder->body ? "\n{$this->reminder->body}" : '';
 

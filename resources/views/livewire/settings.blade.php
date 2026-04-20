@@ -376,6 +376,48 @@
                 </div>
             </div>
 
+            {{-- WhatsApp --}}
+            <div class="mt-8">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">WhatsApp</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Link your WhatsApp number to chat with your assistant and receive reminders via WhatsApp.</p>
+
+                @if ($whatsappSaved)
+                <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
+                     x-data x-init="setTimeout(() => $el.remove(), 2500)">
+                    WhatsApp settings saved.
+                </div>
+                @endif
+
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
+                    <div class="p-5 space-y-4">
+                        @if (auth()->user()->hasWhatsAppLinked())
+                        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Linked — Phone: {{ auth()->user()->whatsapp_phone }}
+                        </div>
+                        @endif
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">WhatsApp Phone Number</label>
+                            <input wire:model="whatsappPhone" type="text" placeholder="e.g. 201234567890"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                            @error('whatsappPhone') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Enter your number in international format without the + sign (e.g. 201234567890 for Egypt).</p>
+                        </div>
+                    </div>
+
+                    <div class="p-5 flex justify-end">
+                        <button wire:click="saveWhatsAppSettings" wire:loading.attr="disabled" wire:target="saveWhatsAppSettings"
+                            class="px-5 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                            <span wire:loading.remove wire:target="saveWhatsAppSettings">Save WhatsApp settings</span>
+                            <span wire:loading wire:target="saveWhatsAppSettings">Saving…</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {{-- AI Tools --}}
             <div class="mt-8 mb-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">AI Tools</h2>

@@ -5,6 +5,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Telegram\TelegramWebhookController;
 use App\Http\Controllers\Voice\TranscribeController;
 use App\Http\Controllers\Voice\TtsController;
+use App\Http\Controllers\WhatsApp\WhatsAppWebhookController;
 use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -21,6 +22,10 @@ Route::get('/healthz', HealthController::class)->name('health');
 
 // Telegram webhook — no auth, CSRF excluded in bootstrap/app.php
 Route::post('/webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
+
+// WhatsApp webhook — GET for verification challenge, POST for messages, no auth, CSRF excluded
+Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
+Route::post('/webhooks/whatsapp', WhatsAppWebhookController::class)->name('webhooks.whatsapp');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', Login::class)->name('login');

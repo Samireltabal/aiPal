@@ -6,12 +6,12 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
-use App\Services\TelegramService;
+use App\Services\WhatsAppService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Transcription;
 
-class ProcessTelegramMessageJob implements ShouldQueue
+class ProcessWhatsAppMessageJob implements ShouldQueue
 {
     use Queueable;
 
@@ -21,12 +21,12 @@ class ProcessTelegramMessageJob implements ShouldQueue
 
     public function __construct(
         public readonly int $userId,
-        public readonly string $chatId,
+        public readonly string $phone,
         public readonly ?string $text,
-        public readonly ?string $voiceFileId = null,
+        public readonly ?string $audioMediaId = null,
     ) {}
 
-    public function handle(TelegramService $telegram): void
+    public function handle(WhatsAppService $whatsApp): void
     {
         $user = User::find($this->userId);
 
@@ -36,7 +36,7 @@ class ProcessTelegramMessageJob implements ShouldQueue
 
         $persona = $user->persona;
 
-        $text = $this->resolveText($telegram);
+        $text = $this->resolveText($whatsApp);
 
         if ($text === null) {
             return;
@@ -46,24 +46,24 @@ class ProcessTelegramMessageJob implements ShouldQueue
             ->withUser($user)
             ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
 
-        $conversationId = "telegram_{$this->chatId}";
+        $conversationId = "whatsapp_{$this->phone}";
 
         $reply = (string) $agent->remember($conversationId)->prompt($text);
 
-        $telegram->send($this->chatId, $reply);
+        $whatsApp->send($this->phone, $reply);
     }
 
-    private function resolveText(TelegramService $telegram): ?string
+    private function resolveText(WhatsAppService $whatsApp): ?string
     {
         if ($this->text !== null) {
             return $this->text;
         }
 
-        if ($this->voiceFileId === null) {
+        if ($this->audioMediaId === null) {
             return null;
         }
 
-        $tmpPath = $telegram->downloadVoice($this->voiceFileId);
+        $tmpPath = $whatsApp->downloadAudio($this->audioMediaId);
 
         if ($tmpPath === null) {
             return null;

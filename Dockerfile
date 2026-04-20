@@ -80,12 +80,16 @@ COPY --from=node-build /app/public/build /var/www/html/public/build
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Supervisor config (manages php-fpm + horizon + scheduler)
+# Supervisor config
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Production entrypoint (runs migrations + caching before php-fpm)
+COPY docker/app/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000
 
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["php-fpm", "--nodaemonize"]
 
 # ─── Development override ──────────────────────────────────────────────────────
 FROM production AS development

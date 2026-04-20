@@ -28,8 +28,13 @@ class TelegramWebhookController
 
         $chatId = (string) ($message['chat']['id'] ?? '');
         $text = trim($message['text'] ?? '');
+        $voiceFileId = $message['voice']['file_id'] ?? null;
 
-        if ($chatId === '' || $text === '') {
+        if ($chatId === '') {
+            return response('OK', 200);
+        }
+
+        if ($text === '' && $voiceFileId === null) {
             return response('OK', 200);
         }
 
@@ -56,7 +61,7 @@ class TelegramWebhookController
             return response('OK', 200);
         }
 
-        ProcessTelegramMessageJob::dispatch($user->id, $chatId, $text);
+        ProcessTelegramMessageJob::dispatch($user->id, $chatId, $text ?: null, $voiceFileId);
 
         return response('OK', 200);
     }

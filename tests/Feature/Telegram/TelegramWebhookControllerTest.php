@@ -54,7 +54,7 @@ class TelegramWebhookControllerTest extends TestCase
         $telegram = Mockery::mock(TelegramService::class);
         $telegram->shouldReceive('send')
             ->once()
-            ->with('777', Mockery::containsString('777'));
+            ->withArgs(fn ($to, $msg) => $to === '777' && str_contains($msg, '777'));
 
         $this->app->instance(TelegramService::class, $telegram);
 
@@ -66,7 +66,7 @@ class TelegramWebhookControllerTest extends TestCase
         $telegram = Mockery::mock(TelegramService::class);
         $telegram->shouldReceive('send')
             ->once()
-            ->with('999', Mockery::containsString('not linked'));
+            ->withArgs(fn ($to, $msg) => $to === '999' && str_contains(strtolower($msg), 'not linked'));
 
         $this->app->instance(TelegramService::class, $telegram);
 
@@ -99,12 +99,36 @@ class TelegramWebhookControllerTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_voice_note_dispatches_job_with_file_id(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create(['telegram_chat_id' => '12345']);
+
+        $update = [
+            'message' => [
+                'chat' => ['id' => '12345'],
+                'from' => ['first_name' => 'Test'],
+                'voice' => ['file_id' => 'voice-file-abc', 'duration' => 5],
+            ],
+        ];
+
+        $this->webhookPost($update)->assertStatus(200);
+
+        Queue::assertPushed(ProcessTelegramMessageJob::class, function ($job) use ($user): bool {
+            return $job->userId === $user->id
+                && $job->chatId === '12345'
+                && $job->text === null
+                && $job->voiceFileId === 'voice-file-abc';
+        });
+    }
+
     public function test_rate_limits_excessive_messages(): void
     {
         Queue::fake();
 
         $telegram = Mockery::mock(TelegramService::class);
-        $telegram->shouldReceive('send')->once()->with('888', Mockery::containsString('Too many'));
+        $telegram->shouldReceive('send')->once()->withArgs(fn ($to, $msg) => $to === '888' && str_contains($msg, 'Too many'));
 
         $this->app->instance(TelegramService::class, $telegram);
 

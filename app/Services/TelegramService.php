@@ -60,4 +60,39 @@ class TelegramService implements MessagingChannel
 
         return $response->successful();
     }
+
+    /**
+     * Download a voice file and save it to a temp path. Returns the path or null on failure.
+     */
+    public function downloadVoice(string $fileId): ?string
+    {
+        $response = Http::timeout(10)
+            ->get("{$this->apiBase}/getFile", ['file_id' => $fileId]);
+
+        if (! $response->successful()) {
+            Log::warning('Telegram getFile failed', ['file_id' => $fileId]);
+
+            return null;
+        }
+
+        $filePath = $response->json('result.file_path');
+
+        if (! $filePath) {
+            return null;
+        }
+
+        $token = config('services.telegram.bot_token');
+        $download = Http::timeout(30)->get("https://api.telegram.org/file/bot{$token}/{$filePath}");
+
+        if (! $download->successful()) {
+            Log::warning('Telegram file download failed', ['file_path' => $filePath]);
+
+            return null;
+        }
+
+        $tmpPath = sys_get_temp_dir().'/tg_voice_'.uniqid().'.ogg';
+        file_put_contents($tmpPath, $download->body());
+
+        return $tmpPath;
+    }
 }

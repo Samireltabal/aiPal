@@ -1,0 +1,19 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+    # Reverse proxy to nginx which handles PHP-FPM
+    reverse_proxy nginx:80
+
+    # Disable response buffering for SSE streaming (AI chat)
+    @sse path /api/*
+    reverse_proxy @sse nginx:80 {
+        flush_interval -1
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
