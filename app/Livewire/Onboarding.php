@@ -40,7 +40,7 @@ class Onboarding extends Component
     {
         // Redirect to chat if persona already exists
         if (Auth::user()->persona) {
-            $this->redirect(route('chat'));
+            $this->redirect(route('dashboard'));
         }
     }
 
@@ -85,7 +85,7 @@ class Onboarding extends Component
             'system_prompt' => $systemPrompt,
         ]);
 
-        $this->redirect(route('chat'));
+        $this->redirect(route('dashboard'));
     }
 
     private function validateStep(): void

@@ -83,7 +83,7 @@ class Register extends Component
         Auth::login($user);
         session()->regenerate();
 
-        $this->redirect(route('chat'));
+        $this->redirect(route('dashboard'));
     }
 
     public function render(): View

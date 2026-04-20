@@ -10,6 +10,7 @@ use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Chat;
+use App\Livewire\Dashboard;
 use App\Livewire\Documents;
 use App\Livewire\Memories;
 use App\Livewire\Onboarding;
@@ -48,7 +49,8 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/google/disconnect', [GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
 
     Route::middleware('persona')->group(function (): void {
-        Route::get('/', Chat::class)->name('chat');
+        Route::get('/', Dashboard::class)->name('dashboard');
+        Route::get('/chat', Chat::class)->name('chat');
         Route::post('/voice/transcribe', TranscribeController::class)->name('voice.transcribe');
         Route::post('/voice/tts', TtsController::class)->name('voice.tts');
         Route::get('/settings', Settings::class)->name('settings');

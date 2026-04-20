@@ -6,6 +6,8 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 **Stack:** Laravel 13 · PHP 8.4 · PostgreSQL 16 + pgvector · Redis · Livewire · Tailwind v4 · Docker
 
+**Docker image:** `ghcr.io/samireltabal/aipal:latest` (amd64 + arm64)
+
 ---
 
 ## Features
@@ -38,9 +40,17 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 - **WhatsApp bot** — full chat via Meta Cloud API (no Twilio required), voice notes supported
 - **Webhook channel** — deliver reminders to any URL
 
+### Dev Integrations
+- **Jira** — JQL search, create and update issues
+- **GitLab** — list MRs, summarize, create issues, view recent commits
+- **Gmail** — list inbox, read emails, draft replies (Google OAuth)
+- **Code Review** — paste a diff, get structured AI feedback with severity and line numbers
+- **Meeting Notes** — paste meeting notes, extract action items, auto-create tasks
+- **Terminal Helper** — explain shell commands or get a command suggestion for any task
+
 ### AI Tools (pluggable)
 All tools can be enabled/disabled per user in Settings:
-`SearchKnowledgeBase` · `CreateNote` · `SearchNotes` · `CreateReminder` · `CreateTask` · `ListTasks` · `GoogleCalendar`
+`SearchKnowledgeBase` · `CreateNote` · `SearchNotes` · `CreateReminder` · `CreateTask` · `ListTasks` · `GoogleCalendar` · `Gmail` · `JiraSearch` · `JiraCreateIssue` · `JiraUpdateIssue` · `GitLabMR` · `GitLabCreateIssue` · `GitLabCommits` · `CodeReview` · `MeetingNotes` · `TerminalHelper`
 
 ### Platform
 - **Multi-user** — invite-only (admin generates signed invite links), each user has isolated memory and persona
@@ -148,7 +158,7 @@ AI_DEFAULT_PROVIDER=ollama
 |---|---|
 | Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
 | WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
-| Google Calendar | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
+| Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
 | VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
 
 ---
@@ -176,24 +186,15 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data 
 
 ---
 
-## Roadmap
+## Contributing
 
-Phases 0–10 complete. Remaining:
-
-- **Phase 11** — Dev integrations (GitLab, Jira, Email triage, Code review tools)
-- **Phase 12** — Polish, docs, v1.0 release
-
-See [PLAN.md](./PLAN.md) for the full plan.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines.
 
 ---
 
-## Contributing
+## Changelog
 
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Write tests (80%+ coverage required)
-4. Run `vendor/bin/pint` before committing
-5. Open a PR against `main`
+See [CHANGELOG.md](./CHANGELOG.md) for the full history of changes.
 
 ---
 

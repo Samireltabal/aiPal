@@ -45,7 +45,7 @@ class Login extends Component
         RateLimiter::clear($key);
         session()->regenerate();
 
-        $this->redirect(route('chat'));
+        $this->redirect(route('dashboard'));
     }
 
     public function render(): View

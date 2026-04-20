@@ -5,9 +5,9 @@
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Invitations</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage access to aiPal</p>
             </div>
-            <a href="{{ route('chat') }}"
+            <a href="{{ route('dashboard') }}"
                 class="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 font-medium">
-                ← Back to chat
+                ← Back to Dashboard
             </a>
         </div>
 
