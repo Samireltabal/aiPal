@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('reminders:dispatch')->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'persona' => EnsurePersonaExists::class,
