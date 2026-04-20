@@ -18,9 +18,14 @@ class ReminderParserAgent implements Agent, HasStructuredOutput
 {
     use Promptable;
 
+    public function __construct(
+        private readonly string $defaultChannel = 'email',
+    ) {}
+
     public function instructions(): string
     {
         $now = now()->toIso8601String();
+        $default = $this->defaultChannel;
 
         return <<<PROMPT
             You are a reminder parser. Given a natural language reminder request, extract the structured details.
@@ -30,7 +35,11 @@ class ReminderParserAgent implements Agent, HasStructuredOutput
             - "remind_at" must be an ISO 8601 datetime string in UTC based on the current time above.
             - "title" is a short summary (max 10 words).
             - "body" is the full reminder message to send to the user (optional, can be null).
-            - "channel" must be "email", "webhook", or "telegram". Default to "email" if not specified. Use "telegram" if the user says "via Telegram", "on Telegram", or similar.
+            - "channel" must be "email", "webhook", "telegram", or "whatsapp".
+            - Default channel is "{$default}" — use it unless the user explicitly names a different channel.
+            - Use "telegram" only if the user says "via Telegram", "on Telegram", or similar.
+            - Use "whatsapp" only if the user says "via WhatsApp", "on WhatsApp", or similar.
+            - Use "email" only if the user says "via email", "by email", or similar.
             PROMPT;
     }
 
@@ -47,7 +56,7 @@ class ReminderParserAgent implements Agent, HasStructuredOutput
                 ->description('ISO 8601 UTC datetime when the reminder should fire.')
                 ->required(),
             'channel' => $schema->string()
-                ->enum(['email', 'webhook', 'telegram'])
+                ->enum(['email', 'webhook', 'telegram', 'whatsapp'])
                 ->description('Delivery channel.')
                 ->required(),
         ];

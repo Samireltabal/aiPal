@@ -55,7 +55,8 @@ class CreateReminder extends AiTool
     {
         $naturalLanguage = $request['natural_language'];
 
-        $parsed = (new ReminderParserAgent)->prompt($naturalLanguage);
+        $defaultChannel = $this->user->default_reminder_channel ?? 'email';
+        $parsed = (new ReminderParserAgent($defaultChannel))->prompt($naturalLanguage);
 
         $remindAt = now()->parse($parsed['remind_at']);
 

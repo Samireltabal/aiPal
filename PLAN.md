@@ -261,7 +261,7 @@ Every morning at your configured time, you get a summary of today's tasks, event
 
 ---
 
-## Phase 10 — Messaging Bots: WhatsApp + Telegram (Week 11) 🔄 PARTIAL
+## Phase 10 — Messaging Bots: WhatsApp + Telegram (Week 11) ✅ COMPLETED
 
 **Goal:** Chat with the assistant from WhatsApp and Telegram.
 
@@ -275,13 +275,13 @@ Every morning at your configured time, you get a summary of today's tasks, event
 - [x] `TelegramChannel` notification channel — reminder delivery via Telegram
 - [x] Settings UI: Telegram chat ID link/unlink
 - [x] `telegram:set-webhook` artisan command
-- [ ] WhatsApp: Twilio or Meta Cloud API — **next session**
-- [ ] `/webhooks/whatsapp` webhook endpoint
-- [ ] Support voice notes (STT pipeline) in Telegram/WhatsApp
-- [ ] Setup guide in docs (per provider)
+- [x] WhatsApp: Meta Cloud API (`WhatsAppService`, `WhatsAppWebhookController`, `WhatsAppChannel`)
+- [x] `/webhooks/whatsapp` webhook endpoint
+- [x] Setup guide in docs (`docs/telegram-setup.md`, `docs/whatsapp-setup.md`)
+- [x] Support voice notes (STT pipeline) in Telegram/WhatsApp
 
 ### Deliverable
-Send a Telegram message → assistant responds with full memory/tool access. Reminders delivered to Telegram. WhatsApp pending.
+Send a Telegram or WhatsApp message → assistant responds with full memory/tool access. Reminders delivered to both channels. Voice notes pending.
 
 ---
 
@@ -290,8 +290,8 @@ Send a Telegram message → assistant responds with full memory/tool access. Rem
 **Goal:** GitLab, Jira, Email triage, Code review.
 
 ### Tasks
-- [ ] `GitLabTool` — list MRs, summarize, create issues, recent commits
-- [ ] `JiraTool` — JQL queries, create/update issues, transitions
+- [x] `GitLabTool` — list MRs, summarize, create issues, recent commits
+- [x] `JiraTool` — JQL queries, create/update issues, transitions ✅
 - [ ] `EmailTool` — Gmail API + IMAP; list, summarize, draft replies
 - [ ] `CodeReviewTool` — diff in, structured feedback out
 - [ ] `MeetingNotesTool` — paste notes, extract actions → create tasks

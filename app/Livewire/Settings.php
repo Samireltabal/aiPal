@@ -67,6 +67,9 @@ class Settings extends Component
 
     public bool $briefingSaved = false;
 
+    #[Validate('required|in:email,telegram,whatsapp,webhook')]
+    public string $defaultReminderChannel = 'email';
+
     #[Validate('nullable|string|regex:/^\d+$/')]
     public ?string $telegramChatId = null;
 
@@ -76,6 +79,25 @@ class Settings extends Component
     public ?string $whatsappPhone = null;
 
     public bool $whatsappSaved = false;
+
+    #[Validate('nullable|url|max:255')]
+    public ?string $jiraHost = null;
+
+    #[Validate('nullable|email|max:255')]
+    public ?string $jiraEmail = null;
+
+    #[Validate('nullable|string|max:255')]
+    public ?string $jiraToken = null;
+
+    public bool $jiraSaved = false;
+
+    #[Validate('nullable|url|max:255')]
+    public ?string $gitlabHost = null;
+
+    #[Validate('nullable|string|max:255')]
+    public ?string $gitlabToken = null;
+
+    public bool $gitlabSaved = false;
 
     public function mount(): void
     {
@@ -95,9 +117,15 @@ class Settings extends Component
         $this->briefingEnabled = (bool) $user->briefing_enabled;
         $this->briefingTime = substr($user->briefing_time ?? '08:00', 0, 5);
         $this->briefingTimezone = $user->briefing_timezone ?? 'UTC';
+        $this->defaultReminderChannel = $user->default_reminder_channel ?? 'email';
 
         $this->telegramChatId = $user->telegram_chat_id;
         $this->whatsappPhone = $user->whatsapp_phone;
+        $this->jiraHost = $user->jira_host;
+        $this->jiraEmail = $user->jira_email;
+        $this->jiraToken = $user->jira_token;
+        $this->gitlabHost = $user->gitlab_host ?? 'https://gitlab.com';
+        $this->gitlabToken = $user->gitlab_token;
     }
 
     public function regenerate(): void
@@ -182,15 +210,45 @@ class Settings extends Component
         $this->whatsappSaved = true;
     }
 
+    public function saveGitLabSettings(): void
+    {
+        $this->validateOnly('gitlabHost');
+        $this->validateOnly('gitlabToken');
+
+        Auth::user()->update([
+            'gitlab_host' => $this->gitlabHost ?: 'https://gitlab.com',
+            'gitlab_token' => $this->gitlabToken ?: null,
+        ]);
+
+        $this->gitlabSaved = true;
+    }
+
+    public function saveJiraSettings(): void
+    {
+        $this->validateOnly('jiraHost');
+        $this->validateOnly('jiraEmail');
+        $this->validateOnly('jiraToken');
+
+        Auth::user()->update([
+            'jira_host' => $this->jiraHost ?: null,
+            'jira_email' => $this->jiraEmail ?: null,
+            'jira_token' => $this->jiraToken ?: null,
+        ]);
+
+        $this->jiraSaved = true;
+    }
+
     public function saveBriefingSettings(): void
     {
         $this->validateOnly('briefingTime');
         $this->validateOnly('briefingTimezone');
+        $this->validateOnly('defaultReminderChannel');
 
         Auth::user()->update([
             'briefing_enabled' => $this->briefingEnabled,
             'briefing_time' => $this->briefingTime,
             'briefing_timezone' => $this->briefingTimezone,
+            'default_reminder_channel' => $this->defaultReminderChannel,
         ]);
 
         $this->briefingSaved = true;
