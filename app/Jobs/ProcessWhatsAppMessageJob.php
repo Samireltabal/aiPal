@@ -46,9 +46,14 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             ->withUser($user)
             ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
 
-        $conversationId = "whatsapp_{$this->phone}";
+        if ($user->whatsapp_conversation_id) {
+            $response = $agent->continue($user->whatsapp_conversation_id, as: $user)->prompt($text);
+        } else {
+            $response = $agent->forUser($user)->prompt($text);
+            $user->update(['whatsapp_conversation_id' => $response->conversationId]);
+        }
 
-        $reply = (string) $agent->remember($conversationId)->prompt($text);
+        $reply = (string) $response;
 
         $whatsApp->send($this->phone, $reply);
     }

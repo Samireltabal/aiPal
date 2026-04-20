@@ -46,9 +46,14 @@ class ProcessTelegramMessageJob implements ShouldQueue
             ->withUser($user)
             ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
 
-        $conversationId = "telegram_{$this->chatId}";
+        if ($user->telegram_conversation_id) {
+            $response = $agent->continue($user->telegram_conversation_id, as: $user)->prompt($text);
+        } else {
+            $response = $agent->forUser($user)->prompt($text);
+            $user->update(['telegram_conversation_id' => $response->conversationId]);
+        }
 
-        $reply = (string) $agent->remember($conversationId)->prompt($text);
+        $reply = (string) $response;
 
         $telegram->send($this->chatId, $reply);
     }
