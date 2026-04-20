@@ -35,6 +35,11 @@ class Register extends Component
 
     public function mount(): void
     {
+        // First user can register without an invitation
+        if (User::count() === 0) {
+            return;
+        }
+
         $this->invitation = Invitation::where('token', $this->token)->first();
 
         if (! $this->invitation || ! $this->invitation->isPending()) {
@@ -50,19 +55,21 @@ class Register extends Component
     {
         $this->validate();
 
-        if (! $this->invitation || ! $this->invitation->isPending()) {
-            $this->addError('token', 'This invitation is no longer valid.');
-
-            return;
-        }
-
-        if ($this->invitation->email && $this->invitation->email !== $this->email) {
-            $this->addError('email', 'This invitation was issued for a different email address.');
-
-            return;
-        }
-
         $isFirstUser = User::count() === 0;
+
+        if (! $isFirstUser) {
+            if (! $this->invitation || ! $this->invitation->isPending()) {
+                $this->addError('token', 'This invitation is no longer valid.');
+
+                return;
+            }
+
+            if ($this->invitation->email && $this->invitation->email !== $this->email) {
+                $this->addError('email', 'This invitation was issued for a different email address.');
+
+                return;
+            }
+        }
 
         $user = User::create([
             'name' => $this->name,
@@ -71,7 +78,7 @@ class Register extends Component
             'is_admin' => $isFirstUser,
         ]);
 
-        $this->invitation->accept();
+        $this->invitation?->accept();
 
         Auth::login($user);
         session()->regenerate();
