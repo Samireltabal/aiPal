@@ -33,4 +33,4 @@ Schedule::call(function () {
         });
 })->everyMinute()->name('daily-briefings')->withoutOverlapping();
 
-Schedule::command('reminders:dispatch')->everyMinute()->withoutOverlapping();
+Schedule::command('reminders:dispatch')->everyMinute()->withoutOverlapping(expiresAt: 5);

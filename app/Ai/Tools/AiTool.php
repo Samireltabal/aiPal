@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ai\Tools;
 
 use App\Models\ToolExecution;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -27,7 +28,16 @@ abstract class AiTool implements Tool
     {
         $start = hrtime(true);
 
-        $result = $this->execute($request);
+        try {
+            $result = $this->execute($request);
+        } catch (\Throwable $e) {
+            Log::warning('Tool execution failed', [
+                'tool' => static::toolName(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return 'Tool "'.static::toolName().'" is temporarily unavailable: '.$e->getMessage();
+        }
 
         $durationMs = (int) ((hrtime(true) - $start) / 1_000_000);
 
