@@ -98,6 +98,37 @@ class GitLabService
         return $this->request('POST', "/projects/{$encodedPath}/issues", [], $body)->json();
     }
 
+    /** Get diff/changes for a merge request. */
+    public function getMergeRequestChanges(string $projectPath, int $mrIid): array
+    {
+        $encodedPath = urlencode($projectPath);
+
+        return $this->request('GET', "/projects/{$encodedPath}/merge_requests/{$mrIid}/changes")->json();
+    }
+
+    /** Post a general note (comment) on a merge request. */
+    public function createMergeRequestNote(string $projectPath, int $mrIid, string $body): array
+    {
+        $encodedPath = urlencode($projectPath);
+
+        return $this->request('POST', "/projects/{$encodedPath}/merge_requests/{$mrIid}/notes", [], ['body' => $body])->json();
+    }
+
+    /**
+     * Post an inline discussion on a specific file and line of a merge request.
+     *
+     * @param  array{position_type: string, base_sha: string, start_sha: string, head_sha: string, new_path: string, new_line: int}  $position
+     */
+    public function createMergeRequestDiscussion(string $projectPath, int $mrIid, string $body, array $position): array
+    {
+        $encodedPath = urlencode($projectPath);
+
+        return $this->request('POST', "/projects/{$encodedPath}/merge_requests/{$mrIid}/discussions", [], [
+            'body' => $body,
+            'position' => $position,
+        ])->json();
+    }
+
     /** Search projects by name. */
     public function searchProjects(string $query, int $perPage = 5): array
     {

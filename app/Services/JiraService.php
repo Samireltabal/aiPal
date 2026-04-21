@@ -46,14 +46,27 @@ class JiraService
         return $this->request('GET', "/issue/{$issueKey}")->json();
     }
 
-    /** Create a new issue. */
-    public function createIssue(string $projectKey, string $summary, string $issueType = 'Task', ?string $description = null, ?string $priority = null): array
-    {
+    /** Create a new issue, optionally as a sub-task under a parent. */
+    public function createIssue(
+        string $projectKey,
+        string $summary,
+        string $issueType = 'Task',
+        ?string $description = null,
+        ?string $priority = null,
+        ?string $parentIssueKey = null,
+    ): array {
         $fields = [
             'project' => ['key' => $projectKey],
             'summary' => $summary,
-            'issuetype' => ['name' => $issueType],
         ];
+
+        if ($parentIssueKey !== null) {
+            $subTaskType = $this->resolveSubTaskType($projectKey);
+            $fields['issuetype'] = ['id' => $subTaskType['id']];
+            $fields['parent'] = ['key' => $parentIssueKey];
+        } else {
+            $fields['issuetype'] = ['name' => $issueType];
+        }
 
         if ($description !== null) {
             $fields['description'] = [
@@ -71,6 +84,31 @@ class JiraService
         }
 
         return $this->request('POST', '/issue', [], ['fields' => $fields])->json();
+    }
+
+    /** Get available issue types for a project. */
+    public function getIssueTypes(string $projectKey): array
+    {
+        $projects = $this->request('GET', '/issue/createmeta', [
+            'projectKeys' => $projectKey,
+            'expand' => 'projects.issuetypes',
+        ])->json('projects', []);
+
+        return $projects[0]['issuetypes'] ?? [];
+    }
+
+    /** Resolve the sub-task issue type for a project, or throw if unsupported. */
+    private function resolveSubTaskType(string $projectKey): array
+    {
+        $types = $this->getIssueTypes($projectKey);
+
+        foreach ($types as $type) {
+            if (($type['subtask'] ?? false) === true) {
+                return $type;
+            }
+        }
+
+        throw new RuntimeException("Project {$projectKey} does not support sub-tasks. Available types: ".implode(', ', array_column($types, 'name')));
     }
 
     /** Transition an issue to a new status. */
