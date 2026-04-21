@@ -104,6 +104,18 @@
             @endif
         </nav>
 
+        {{-- PWA install banner --}}
+        <div x-show="$store.pwa.installable"
+            x-transition
+            class="mx-3 mb-2 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 flex-shrink-0"
+            style="display:none">
+            <p class="text-xs text-indigo-700 dark:text-indigo-300 font-medium mb-2">Install aiPal on your device</p>
+            <button @click="$store.pwa.install()"
+                class="w-full text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                Add to Home Screen
+            </button>
+        </div>
+
         {{-- Sign out --}}
         <div class="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             <form method="POST" action="{{ route('logout') }}">

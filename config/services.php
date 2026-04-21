@@ -53,4 +53,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/google/callback'),
     ],
 
+    'vapid' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
 ];

@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Google\GoogleAuthController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\OfflineController;
 use App\Http\Controllers\Telegram\TelegramWebhookController;
 use App\Http\Controllers\Voice\TranscribeController;
 use App\Http\Controllers\Voice\TtsController;
@@ -20,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', HealthController::class)->name('health');
+Route::get('/offline', OfflineController::class)->name('offline');
 
 // Telegram webhook — no auth, CSRF excluded in bootstrap/app.php
 Route::post('/webhooks/telegram', TelegramWebhookController::class)->name('webhooks.telegram');
@@ -92,6 +95,9 @@ Route::middleware('auth')->group(function (): void {
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         })->name('persona.export');
+
+        Route::post('/push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+        Route::post('/push/unsubscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 
         Route::middleware('admin')->group(function (): void {
             Route::get('/admin/invitations', Invitations::class)->name('admin.invitations');
