@@ -127,7 +127,7 @@
                         </button>
                     @endif
                 </div>
-                <div class="px-5 py-5">
+                <div class="@if($emailsFetched && count($recentEmails) > 0) divide-y divide-gray-50 dark:divide-gray-700 @else px-5 py-5 @endif">
                     @if (! $gmailConnected)
                         <div class="text-center py-4">
                             <p class="text-sm text-gray-400 dark:text-gray-500 mb-3">Google account not connected.</p>
@@ -137,19 +137,30 @@
                         <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
                             Click <strong>Fetch</strong> to check your inbox.
                         </p>
+                    @elseif (count($recentEmails) === 0)
+                        <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Your inbox is empty.</p>
                     @else
-                        <div class="flex items-center gap-4">
-                            <div class="text-4xl font-bold text-gray-900 dark:text-white">{{ $unreadEmailsCount }}</div>
-                            <div>
-                                <p class="text-sm text-gray-600 dark:text-gray-300 font-medium">recent emails</p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">in your inbox</p>
+                        @foreach ($recentEmails as $email)
+                            <div class="flex items-start gap-3 px-5 py-3">
+                                @if ($email['isUnread'])
+                                    <span class="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1.5"></span>
+                                @else
+                                    <span class="flex-shrink-0 w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mt-1.5"></span>
+                                @endif
+                                <div class="min-w-0">
+                                    <p class="text-sm {{ $email['isUnread'] ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300' }} truncate">{{ $email['subject'] }}</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ $email['from'] }}</p>
+                                </div>
                             </div>
+                        @endforeach
+                        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            @if ($unreadEmailsCount > 0)
+                                <span class="text-xs text-blue-500 font-medium">{{ $unreadEmailsCount }} unread</span>
+                            @else
+                                <span class="text-xs text-gray-400 dark:text-gray-500">All read</span>
+                            @endif
+                            <a href="{{ route('chat') }}" class="text-xs text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400">Ask assistant →</a>
                         </div>
-                        @if ($unreadEmailsCount > 0)
-                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                                Ask <a href="{{ route('chat') }}" class="text-indigo-500 hover:underline">the assistant</a> to summarize or reply to your emails.
-                            </p>
-                        @endif
                     @endif
                 </div>
             </div>

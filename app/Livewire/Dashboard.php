@@ -35,6 +35,8 @@ class Dashboard extends Component
 
     public int $unreadEmailsCount = 0;
 
+    public array $recentEmails = [];
+
     public bool $gmailConnected = false;
 
     public bool $calendarConnected = false;
@@ -81,7 +83,8 @@ class Dashboard extends Component
             $gmail = app(GmailService::class);
             $emails = $gmail->listInbox($user, 20);
 
-            $this->unreadEmailsCount = count($emails);
+            $this->unreadEmailsCount = count(array_filter($emails, fn (array $e) => $e['isUnread']));
+            $this->recentEmails = array_slice($emails, 0, 5);
             $this->emailsFetched = true;
         } catch (\Throwable $e) {
             Log::warning('Dashboard Gmail fetch failed', ['error' => $e->getMessage()]);
