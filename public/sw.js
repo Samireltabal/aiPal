@@ -61,14 +61,14 @@ self.addEventListener('fetch', (event) => {
 
 // Web Push: show notification
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
   let data = {};
-  try { data = event.data.json(); } catch (_) { data = { title: 'aiPal', body: event.data.text() }; }
+  if (event.data) {
+    try { data = event.data.json(); } catch (_) { data = { body: event.data.text() }; }
+  }
 
   const title = data.title ?? 'aiPal';
   const options = {
-    body: data.body ?? '',
+    body: data.body ?? 'You have a new notification.',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     data: { url: data.url ?? '/' },
