@@ -8,6 +8,7 @@ use App\Ai\Services\ToolRegistry;
 use App\Jobs\GenerateAvatarJob;
 use App\Models\UserToolSetting;
 use App\Services\PersonaGenerator;
+use App\Services\WebPushService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -66,6 +67,8 @@ class Settings extends Component
     public string $briefingTimezone = 'UTC';
 
     public bool $briefingSaved = false;
+
+    public bool $pushTestSent = false;
 
     #[Validate('required|in:email,telegram,whatsapp,webhook')]
     public string $defaultReminderChannel = 'email';
@@ -236,6 +239,19 @@ class Settings extends Component
         ]);
 
         $this->jiraSaved = true;
+    }
+
+    public function sendTestPush(): void
+    {
+        $user = Auth::user();
+
+        if (! $user->push_notifications_enabled) {
+            return;
+        }
+
+        app(WebPushService::class)->send($user, '🔔 aiPal', 'Push notifications are working!', '/');
+
+        $this->pushTestSent = true;
     }
 
     public function saveBriefingSettings(): void

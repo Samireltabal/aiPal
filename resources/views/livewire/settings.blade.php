@@ -504,6 +504,24 @@
                 </div>
                 <p x-data x-show="!('serviceWorker' in navigator && 'PushManager' in window)"
                     class="text-sm text-gray-400 dark:text-gray-500">Push notifications are not supported in this browser.</p>
+
+                @if (auth()->user()->push_notifications_enabled)
+                    <div class="mt-3 flex items-center gap-3">
+                        <button wire:click="sendTestPush"
+                            wire:loading.attr="disabled"
+                            class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors">
+                            <svg wire:loading wire:target="sendTestPush" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <svg wire:loading.remove wire:target="sendTestPush" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            Send test notification
+                        </button>
+                        @if ($pushTestSent)
+                            <span class="text-xs text-green-600 dark:text-green-400"
+                                x-data x-init="setTimeout(() => $el.remove(), 3000)">
+                                Sent! Check your notifications.
+                            </span>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <div class="mt-8 mb-8">
