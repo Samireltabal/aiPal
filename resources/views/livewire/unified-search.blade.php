@@ -1,3 +1,4 @@
+<div>
 @if ($open)
 <div
     x-data
@@ -91,3 +92,4 @@
     </div>
 </div>
 @endif
+</div>
