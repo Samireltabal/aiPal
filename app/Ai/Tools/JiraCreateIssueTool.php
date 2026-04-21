@@ -39,7 +39,7 @@ class JiraCreateIssueTool extends AiTool
 
     public function description(): Stringable|string
     {
-        return 'Create a new Jira issue. Use when the user says "create a Jira ticket", "add an issue to project X", "log a bug in Jira", or similar.';
+        return 'Create a new Jira issue or sub-task. Use when the user says "create a Jira ticket", "add an issue to project X", "log a bug in Jira", "create sub-tasks under PROJ-123", or similar. Pass parent_issue_key to create a sub-task linked to a parent issue.';
     }
 
     public function schema(JsonSchema $schema): array
@@ -52,8 +52,8 @@ class JiraCreateIssueTool extends AiTool
                 ->description('Issue title / summary.')
                 ->required(),
             'issue_type' => $schema->string()
-                ->description('Issue type: "Task", "Bug", "Story", "Epic", or "Subtask". Defaults to "Task".')
-                ->enum(['Task', 'Bug', 'Story', 'Epic', 'Subtask'])
+                ->description('Issue type: "Task", "Bug", "Story", or "Epic". Ignored when parent_issue_key is set — the correct sub-task type is resolved automatically. Defaults to "Task".')
+                ->enum(['Task', 'Bug', 'Story', 'Epic'])
                 ->nullable()
                 ->required(),
             'description' => $schema->string()
@@ -63,6 +63,10 @@ class JiraCreateIssueTool extends AiTool
             'priority' => $schema->string()
                 ->description('Priority: "Highest", "High", "Medium", "Low", "Lowest". Pass null to use project default.')
                 ->enum(['Highest', 'High', 'Medium', 'Low', 'Lowest'])
+                ->nullable()
+                ->required(),
+            'parent_issue_key' => $schema->string()
+                ->description('Parent issue key, e.g. "JOODDEV-1414". When provided, the issue is created as a sub-task under this parent. The correct sub-task type ID is fetched automatically from the project.')
                 ->nullable()
                 ->required(),
         ];
@@ -82,6 +86,7 @@ class JiraCreateIssueTool extends AiTool
                 issueType: $request['issue_type'] ?? 'Task',
                 description: $request['description'] ?? null,
                 priority: $request['priority'] ?? null,
+                parentIssueKey: $request['parent_issue_key'] ?? null,
             );
         } catch (RuntimeException $e) {
             return $e->getMessage();
