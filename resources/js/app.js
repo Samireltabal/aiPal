@@ -1,8 +1,86 @@
 import { marked } from 'marked';
 
+// PWA helpers
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+    const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content;
+    if (!vapidKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return existing;
+
+    return reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    });
+}
+
+async function sendSubscriptionToServer(subscription, csrfToken) {
+    const key = subscription.getKey('p256dh');
+    const auth = subscription.getKey('auth');
+    await fetch('/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            public_key: btoa(String.fromCharCode(...new Uint8Array(key))),
+            auth_token: btoa(String.fromCharCode(...new Uint8Array(auth))),
+        }),
+    });
+}
+
 marked.setOptions({ breaks: true });
 
 document.addEventListener('alpine:init', () => {
+    Alpine.store('pwa', {
+        installable: false,
+        install() {
+            if (!window.__pwaInstallPrompt) return;
+            window.__pwaInstallPrompt.prompt();
+            window.__pwaInstallPrompt.userChoice.then(() => { this.installable = false; });
+        },
+    });
+
+    document.addEventListener('pwa:installable', () => {
+        Alpine.store('pwa').installable = true;
+    });
+
+    Alpine.data('pushToggle', (initialEnabled, csrfToken) => ({
+        enabled: initialEnabled,
+        loading: false,
+        async toggle() {
+            this.loading = true;
+            try {
+                if (!this.enabled) {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') { this.loading = false; return; }
+                    const sub = await subscribeToPush();
+                    if (sub) await sendSubscriptionToServer(sub, csrfToken);
+                    this.enabled = true;
+                } else {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    if (sub) {
+                        await fetch('/push/unsubscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                            body: JSON.stringify({ endpoint: sub.endpoint }),
+                        });
+                        await sub.unsubscribe();
+                    }
+                    this.enabled = false;
+                }
+            } finally { this.loading = false; }
+        },
+    }));
+
     Alpine.store('theme', {
         dark: localStorage.getItem('theme') === 'dark' ||
             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),

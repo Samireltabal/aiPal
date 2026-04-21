@@ -7,6 +7,7 @@ namespace App\Notifications;
 use App\Models\Reminder;
 use App\Notifications\Channels\TelegramChannel;
 use App\Notifications\Channels\WebhookChannel;
+use App\Notifications\Channels\WebPushChannel;
 use App\Notifications\Channels\WhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -23,12 +24,18 @@ class ReminderNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return match ($this->reminder->channel) {
+        $channels = match ($this->reminder->channel) {
             'webhook' => [WebhookChannel::class],
             'telegram' => [TelegramChannel::class],
             'whatsapp' => [WhatsAppChannel::class],
             default => ['mail'],
         };
+
+        if ($notifiable->push_notifications_enabled) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -53,6 +60,13 @@ class ReminderNotification extends Notification implements ShouldQueue
         $body = $this->reminder->body ? "\n{$this->reminder->body}" : '';
 
         return "⏰ *Reminder:* {$this->reminder->title}{$body}";
+    }
+
+    public function toWebPush(object $notifiable): array
+    {
+        $body = $this->reminder->body ?? $this->reminder->title;
+
+        return ['⏰ Reminder', $body, '/productivity'];
     }
 
     public function toWebhook(object $notifiable): array

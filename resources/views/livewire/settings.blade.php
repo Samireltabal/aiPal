@@ -480,6 +480,32 @@
             </div>
 
             {{-- AI Tools --}}
+            {{-- Push Notifications --}}
+            <div class="mt-8">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Push Notifications</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Receive reminders and alerts as native push notifications, even when the browser is closed.</p>
+
+                <div x-data="pushToggle({{ auth()->user()->push_notifications_enabled ? 'true' : 'false' }}, '{{ csrf_token() }}')"
+                    x-show="'serviceWorker' in navigator && 'PushManager' in window">
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable push notifications</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Requires browser permission. Works on Android, macOS, and Windows.</p>
+                        </div>
+                        <button @click="toggle()"
+                            :disabled="loading"
+                            :class="enabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'"
+                            class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 disabled:opacity-50"
+                            :aria-checked="enabled ? 'true' : 'false'">
+                            <span :class="enabled ? 'translate-x-4' : 'translate-x-0'"
+                                class="inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200"></span>
+                        </button>
+                    </div>
+                </div>
+                <p x-data x-show="!('serviceWorker' in navigator && 'PushManager' in window)"
+                    class="text-sm text-gray-400 dark:text-gray-500">Push notifications are not supported in this browser.</p>
+            </div>
+
             <div class="mt-8 mb-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">AI Tools</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Enable or disable the tools your assistant can use. Changes take effect immediately.</p>

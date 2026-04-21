@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'aiPal') }}</title>
+
+    {{-- PWA --}}
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'aiPal') }}">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    @if(config('services.vapid.public_key'))
+        <meta name="vapid-public-key" content="{{ config('services.vapid.public_key') }}">
+    @endif
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
@@ -13,5 +27,19 @@
         {{ $slot }}
     </div>
     @livewireScripts
+
+    {{-- PWA: service worker + install prompt --}}
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+
+        window.__pwaInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.__pwaInstallPrompt = e;
+            document.dispatchEvent(new CustomEvent('pwa:installable'));
+        });
+    </script>
 </body>
 </html>
