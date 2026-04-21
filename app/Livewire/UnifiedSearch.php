@@ -26,6 +26,7 @@ class UnifiedSearch extends Component
         $this->open = true;
         $this->query = '';
         $this->results = [];
+        $this->searching = false;
     }
 
     public function close(): void
@@ -33,23 +34,34 @@ class UnifiedSearch extends Component
         $this->open = false;
         $this->query = '';
         $this->results = [];
+        $this->searching = false;
     }
 
     public function updatedQuery(): void
     {
-        if (strlen(trim($this->query)) < 2) {
+        $query = trim($this->query);
+
+        if (strlen($query) < 2) {
             $this->results = [];
+            $this->searching = false;
 
             return;
         }
 
         $this->searching = true;
+        $snapshot = $this->query;
 
         try {
             $service = app(UnifiedSearchService::class);
-            $this->results = $service->search(Auth::user(), $this->query);
+            $results = $service->search(Auth::user(), $query);
+
+            if ($this->query === $snapshot) {
+                $this->results = $results;
+            }
         } finally {
-            $this->searching = false;
+            if ($this->query === $snapshot) {
+                $this->searching = false;
+            }
         }
     }
 

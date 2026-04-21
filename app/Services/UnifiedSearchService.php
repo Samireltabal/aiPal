@@ -65,23 +65,25 @@ class UnifiedSearchService
             ];
         }
 
-        // Tasks — keyword match (no embeddings on tasks)
+        // Tasks — keyword match (no embeddings); kept separate, appended after semantic results
+        $safeQuery = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
         $tasks = $user->tasks()
             ->where(fn ($q) => $q
-                ->where('title', 'ilike', "%{$query}%")
-                ->orWhere('description', 'ilike', "%{$query}%")
+                ->where('title', 'ilike', "%{$safeQuery}%")
+                ->orWhere('description', 'ilike', "%{$safeQuery}%")
             )
             ->limit(4)
             ->get(['id', 'title', 'priority', 'completed_at']);
 
+        $taskResults = [];
         foreach ($tasks as $task) {
-            $results[] = [
+            $taskResults[] = [
                 'type' => 'task',
                 'id' => $task->id,
                 'title' => $task->title,
                 'excerpt' => $task->completed_at ? 'Completed' : ucfirst($task->priority ?? 'normal').' priority',
                 'url' => '/productivity',
-                'distance' => 0.3,
+                'distance' => null,
             ];
         }
 
@@ -108,8 +110,9 @@ class UnifiedSearchService
             ];
         }
 
-        // Sort all results by distance, deduplicate docs
+        // Sort semantic results by distance, then append keyword task matches
         usort($results, fn ($a, $b) => $a['distance'] <=> $b['distance']);
+        $results = array_merge($results, $taskResults);
 
         return array_slice($results, 0, $limit);
     }

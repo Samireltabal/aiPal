@@ -35,7 +35,10 @@
     {{-- Unified search: Cmd+K / Ctrl+K --}}
     <script>
         document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === 'k') {
+                const tag = document.activeElement?.tagName?.toLowerCase();
+                const editable = document.activeElement?.isContentEditable;
+                if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
                 e.preventDefault();
                 Livewire.dispatch('search:open');
             }
