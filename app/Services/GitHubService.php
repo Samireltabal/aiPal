@@ -114,6 +114,36 @@ class GitHubService
         return $this->request('GET', '/user')->json();
     }
 
+    /**
+     * Create a PR review with inline comments.
+     *
+     * @param  array<array{path: string, line: int, body: string}>  $comments
+     */
+    public function createPullRequestReview(
+        string $repo,
+        int $number,
+        string $commitId,
+        string $summaryBody,
+        array $comments = [],
+    ): array {
+        $payload = [
+            'commit_id' => $commitId,
+            'body' => $summaryBody,
+            'event' => 'COMMENT',
+        ];
+
+        if (! empty($comments)) {
+            $payload['comments'] = array_map(fn (array $c) => [
+                'path' => $c['path'],
+                'line' => $c['line'],
+                'side' => 'RIGHT',
+                'body' => $c['body'],
+            ], $comments);
+        }
+
+        return $this->request('POST', "/repos/{$repo}/pulls/{$number}/reviews", [], $payload)->json();
+    }
+
     private function request(string $method, string $path, array $query = [], array $body = []): Response
     {
         $request = Http::withHeaders([
