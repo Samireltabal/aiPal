@@ -26,7 +26,21 @@
     <div class="flex h-full">
         {{ $slot }}
     </div>
+
+    @auth
+        <livewire:unified-search />
+    @endauth
     @livewireScripts
+
+    {{-- Unified search: Cmd+K / Ctrl+K --}}
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                Livewire.dispatch('search:open');
+            }
+        });
+    </script>
 
     {{-- PWA: service worker + install prompt --}}
     <script>
