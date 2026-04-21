@@ -423,6 +423,46 @@
                 </div>
             </div>
 
+            {{-- GitHub --}}
+            <div class="mt-8">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">GitHub</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect your GitHub account to list PRs, view commits, and create issues.</p>
+
+                @if ($githubSaved)
+                <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
+                     x-data x-init="setTimeout(() => $el.remove(), 2500)">
+                    GitHub settings saved.
+                </div>
+                @endif
+
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
+                    <div class="p-5 space-y-4">
+                        @if (auth()->user()->hasGitHubConnected())
+                        <p class="text-xs text-green-600 dark:text-green-400 font-medium">
+                            Connected — GitHub token saved.
+                        </p>
+                        @endif
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Personal Access Token</label>
+                            <input wire:model="githubToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            @error('githubToken') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                                Generate at GitHub → Settings → Developer settings → Personal access tokens.
+                                Required scopes: <code>repo</code>, <code>read:user</code>.
+                            </p>
+                        </div>
+
+                        <button wire:click="saveGitHubSettings" wire:loading.attr="disabled" wire:target="saveGitHubSettings"
+                            class="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                            <span wire:loading.remove wire:target="saveGitHubSettings">Save GitHub settings</span>
+                            <span wire:loading wire:target="saveGitHubSettings">Saving…</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {{-- Jira --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Jira</h2>
