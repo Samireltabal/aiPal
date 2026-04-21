@@ -44,7 +44,7 @@ class GitLabReviewMRTool extends AiTool
 
     public function description(): Stringable|string
     {
-        return 'Fetch the diff of a GitLab merge request, review the code with AI, and optionally post the review as a comment on the MR. Use when asked to review, critique, or check a merge request.';
+        return 'Fetch the diff of a GitLab merge request, review the code with AI, and optionally post inline comments on each affected file. Use when asked to review, critique, or check a merge request.';
     }
 
     public function schema(JsonSchema $schema): array
@@ -61,7 +61,7 @@ class GitLabReviewMRTool extends AiTool
                 ->nullable()
                 ->required(),
             'post_comment' => $schema->boolean()
-                ->description('If true, post the review as a comment on the MR. Defaults to false.')
+                ->description('If true, post inline comments per file on the MR and a summary note. Defaults to false.')
                 ->nullable()
                 ->required(),
         ];
@@ -86,28 +86,36 @@ class GitLabReviewMRTool extends AiTool
             return $e->getMessage();
         }
 
-        $diff = $this->buildDiff($changes['changes'] ?? []);
+        $fileChanges = $changes['changes'] ?? [];
+        $diffRefs = $changes['diff_refs'] ?? null;
+        $diff = $this->buildDiff($fileChanges);
 
         if ($diff === '') {
             return "MR !{$mrIid} has no file changes to review.";
         }
 
-        $review = $this->reviewDiff(
+        $result = $this->runReview(
             title: $mr['title'] ?? "MR !{$mrIid}",
             description: $mr['description'] ?? '',
             diff: $diff,
             focus: $focus,
         );
 
-        if ($postComment) {
+        $issues = $result['issues'] ?? [];
+        $suggestions = $result['suggestions'] ?? [];
+        $summary = $result['summary'] ?? 'Review complete.';
+
+        if ($postComment && $diffRefs) {
+            $this->postInlineComments($gitlab, $projectPath, $mrIid, $issues, $suggestions, $summary, $diffRefs);
+        } elseif ($postComment) {
             try {
-                $gitlab->createMergeRequestNote($projectPath, $mrIid, $this->formatCommentBody($review));
+                $gitlab->createMergeRequestNote($projectPath, $mrIid, $this->formatSummaryNote($summary, $issues, $suggestions));
             } catch (RuntimeException $e) {
-                $review .= "\n\n⚠ Could not post comment: {$e->getMessage()}";
+                // Non-fatal — review is still returned below.
             }
         }
 
-        return $review;
+        return $this->formatReviewText($summary, $issues, $suggestions);
     }
 
     /** Concatenate file diffs into a single string, capped at MAX_DIFF_CHARS. */
@@ -133,7 +141,8 @@ class GitLabReviewMRTool extends AiTool
         return implode("\n\n", $parts);
     }
 
-    private function reviewDiff(string $title, string $description, string $diff, ?string $focus): string
+    /** @return array{summary: string, issues: array, suggestions: array} */
+    private function runReview(string $title, string $description, string $diff, ?string $focus): array
     {
         $focusInstruction = $focus
             ? "Focus specifically on: {$focus}."
@@ -145,7 +154,7 @@ class GitLabReviewMRTool extends AiTool
 
             public function instructions(): string
             {
-                return 'You are an expert code reviewer. Analyze the provided merge request diff for bugs, security issues, performance problems, and style concerns. Be concise and actionable.';
+                return 'You are an expert code reviewer. Analyze the provided merge request diff for bugs, security issues, performance problems, and style concerns. For each issue, identify the exact file path and the new line number in the diff where the problem occurs. Be concise and actionable.';
             }
 
             public function schema(JsonSchema $schema): array
@@ -157,7 +166,8 @@ class GitLabReviewMRTool extends AiTool
                     'issues' => $schema->array()
                         ->items($schema->object([
                             'severity' => $schema->string()->enum(['critical', 'high', 'medium', 'low'])->required(),
-                            'file' => $schema->string()->description('Affected file path, or null if general.')->nullable()->required(),
+                            'file' => $schema->string()->description('Affected file path (new_path from the diff), or null if general.')->nullable()->required(),
+                            'line' => $schema->integer()->description('The new line number in the file where the issue occurs. Null if not applicable to a specific line.')->nullable()->required(),
                             'message' => $schema->string()->required(),
                         ]))
                         ->required(),
@@ -170,19 +180,77 @@ class GitLabReviewMRTool extends AiTool
         };
 
         $prompt = "MR title: {$title}\n\nDescription: {$description}\n\n{$focusInstruction}\n\nDiff:\n```diff\n{$diff}\n```";
-        $response = $reviewer->prompt($prompt);
 
-        $issues = $response['issues'] ?? [];
-        $suggestions = $response['suggestions'] ?? [];
-        $summary = $response['summary'] ?? 'Review complete.';
+        return $reviewer->prompt($prompt)->toArray();
+    }
 
-        $lines = ["**Code Review for MR**: {$summary}", ''];
+    /**
+     * Post an inline discussion for each issue that has a file + line.
+     * Issues without a line, and suggestions, go into a single summary note.
+     */
+    private function postInlineComments(
+        GitLabService $gitlab,
+        string $projectPath,
+        int $mrIid,
+        array $issues,
+        array $suggestions,
+        string $summary,
+        array $diffRefs,
+    ): void {
+        $generalIssues = [];
+
+        foreach ($issues as $issue) {
+            $file = $issue['file'] ?? null;
+            $line = isset($issue['line']) ? (int) $issue['line'] : null;
+
+            if ($file === null || $line === null) {
+                $generalIssues[] = $issue;
+
+                continue;
+            }
+
+            $severity = strtoupper($issue['severity']);
+            $body = "🤖 **[{$severity}]** {$issue['message']}";
+
+            try {
+                $gitlab->createMergeRequestDiscussion($projectPath, $mrIid, $body, [
+                    'position_type' => 'text',
+                    'base_sha' => $diffRefs['base_sha'],
+                    'start_sha' => $diffRefs['start_sha'],
+                    'head_sha' => $diffRefs['head_sha'],
+                    'new_path' => $file,
+                    'new_line' => $line,
+                ]);
+            } catch (RuntimeException) {
+                $generalIssues[] = $issue;
+            }
+        }
+
+        $hasSummaryContent = ! empty($generalIssues) || ! empty($suggestions) || $summary;
+
+        if ($hasSummaryContent) {
+            try {
+                $gitlab->createMergeRequestNote(
+                    $projectPath,
+                    $mrIid,
+                    $this->formatSummaryNote($summary, $generalIssues, $suggestions),
+                );
+            } catch (RuntimeException) {
+                // Non-fatal.
+            }
+        }
+    }
+
+    private function formatReviewText(string $summary, array $issues, array $suggestions): string
+    {
+        $lines = ["**Code Review**: {$summary}", ''];
 
         if (! empty($issues)) {
             $lines[] = '**Issues:**';
             foreach ($issues as $issue) {
-                $file = $issue['file'] ? " (`{$issue['file']}`)" : '';
-                $lines[] = "• [{$issue['severity']}]{$file} {$issue['message']}";
+                $file = $issue['file'] ? " (`{$issue['file']}`" : '';
+                $line = ($issue['file'] && isset($issue['line'])) ? " line {$issue['line']}`" : ($issue['file'] ? '`' : '');
+                $lines[] = "• [{$issue['severity']}]{$file}{$line} {$issue['message']}";
             }
         }
 
@@ -201,8 +269,25 @@ class GitLabReviewMRTool extends AiTool
         return implode("\n", $lines);
     }
 
-    private function formatCommentBody(string $review): string
+    private function formatSummaryNote(string $summary, array $issues, array $suggestions): string
     {
-        return "🤖 **AI Code Review**\n\n{$review}";
+        $lines = ["🤖 **AI Code Review Summary**\n\n{$summary}"];
+
+        if (! empty($issues)) {
+            $lines[] = "\n**General Issues:**";
+            foreach ($issues as $issue) {
+                $file = $issue['file'] ? " (`{$issue['file']}`)" : '';
+                $lines[] = "• [{$issue['severity']}]{$file} {$issue['message']}";
+            }
+        }
+
+        if (! empty($suggestions)) {
+            $lines[] = "\n**Suggestions:**";
+            foreach ($suggestions as $s) {
+                $lines[] = "• {$s}";
+            }
+        }
+
+        return implode("\n", $lines);
     }
 }
