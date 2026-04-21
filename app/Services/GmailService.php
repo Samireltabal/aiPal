@@ -19,7 +19,7 @@ class GmailService
     public function __construct(private readonly GoogleClientFactory $clientFactory) {}
 
     /**
-     * @return array<int, array{id: string, threadId: string, subject: string, from: string, date: string, snippet: string}>
+     * @return array<int, array{id: string, threadId: string, subject: string, from: string, date: string, snippet: string, isUnread: bool}>
      */
     public function listInbox(User $user, int $maxResults = 10): array
     {
@@ -39,6 +39,8 @@ class GmailService
                 ->mapWithKeys(fn ($h) => [strtolower($h->getName()) => $h->getValue()])
                 ->all();
 
+            $labelIds = $full->getLabelIds() ?? [];
+
             return [
                 'id' => $full->getId(),
                 'threadId' => $full->getThreadId(),
@@ -46,6 +48,7 @@ class GmailService
                 'from' => $headers['from'] ?? 'Unknown',
                 'date' => $headers['date'] ?? '',
                 'snippet' => $full->getSnippet() ?? '',
+                'isUnread' => in_array('UNREAD', $labelIds, true),
             ];
         }, $items);
     }
