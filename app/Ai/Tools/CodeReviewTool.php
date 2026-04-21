@@ -81,11 +81,11 @@ class CodeReviewTool extends AiTool
                         ->description('One-sentence overall verdict.')
                         ->required(),
                     'issues' => $schema->array()
-                        ->items($schema->object()->properties([
-                            'severity' => $schema->string()->enum(['critical', 'high', 'medium', 'low']),
-                            'line' => $schema->string()->description('Line or range, e.g. "12" or "12-15". null if not applicable.')->nullable(),
-                            'message' => $schema->string(),
-                        ])->required(['severity', 'line', 'message']))
+                        ->items($schema->object([
+                            'severity' => $schema->string()->enum(['critical', 'high', 'medium', 'low'])->required(),
+                            'line' => $schema->string()->description('Line or range, e.g. "12" or "12-15". null if not applicable.')->nullable()->required(),
+                            'message' => $schema->string()->required(),
+                        ]))
                         ->required(),
                     'suggestions' => $schema->array()
                         ->items($schema->string())

@@ -155,11 +155,11 @@ class GitLabReviewMRTool extends AiTool
                         ->description('One-sentence overall verdict.')
                         ->required(),
                     'issues' => $schema->array()
-                        ->items($schema->object()->properties([
-                            'severity' => $schema->string()->enum(['critical', 'high', 'medium', 'low']),
-                            'file' => $schema->string()->description('Affected file path, or null if general.')->nullable(),
-                            'message' => $schema->string(),
-                        ])->required(['severity', 'file', 'message']))
+                        ->items($schema->object([
+                            'severity' => $schema->string()->enum(['critical', 'high', 'medium', 'low'])->required(),
+                            'file' => $schema->string()->description('Affected file path, or null if general.')->nullable()->required(),
+                            'message' => $schema->string()->required(),
+                        ]))
                         ->required(),
                     'suggestions' => $schema->array()
                         ->items($schema->string())
