@@ -85,9 +85,11 @@ class GitHubCommitsTool extends AiTool
 
         $lines = array_map(function (array $commit): string {
             $sha = substr($commit['sha'], 0, 8);
-            $message = strtok($commit['commit']['message'], "\n");
+            $rawMessage = $commit['commit']['message'] ?? '';
+            $message = strtok($rawMessage !== '' ? $rawMessage : '(no message)', "\n");
             $author = $commit['commit']['author']['name'] ?? 'Unknown';
-            $date = Carbon::parse($commit['commit']['author']['date'])->diffForHumans();
+            $rawDate = $commit['commit']['author']['date'] ?? null;
+            $date = $rawDate ? Carbon::parse($rawDate)->diffForHumans() : 'unknown date';
 
             return "• {$sha} {$date} by {$author}: {$message}";
         }, $commits);

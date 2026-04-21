@@ -91,10 +91,10 @@ class GitHubPRTool extends AiTool
             $title = $pr['title'] ?? 'Untitled';
             $state = $pr['state'] ?? '';
             $draft = ($pr['draft'] ?? false) ? ' [Draft]' : '';
-            $user = $pr['user']['login'] ?? $pr['login'] ?? 'Unknown';
-            $repo = isset($pr['repository_url'])
-                ? basename((string) $pr['repository_url'])
-                : ($pr['base']['repo']['full_name'] ?? '');
+            $user = $pr['user']['login'] ?? 'Unknown';
+            $repoUrl = (string) ($pr['repository_url'] ?? '');
+            $repo = $pr['base']['repo']['full_name']
+                ?? ($repoUrl !== '' ? implode('/', array_slice(explode('/', $repoUrl), -2)) : '');
 
             return "• #{$number}{$draft}: {$title} — {$state} | {$user} | {$repo}";
         }, $prs);
