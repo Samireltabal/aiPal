@@ -98,6 +98,22 @@ class GitLabService
         return $this->request('POST', "/projects/{$encodedPath}/issues", [], $body)->json();
     }
 
+    /** Get diff/changes for a merge request. */
+    public function getMergeRequestChanges(string $projectPath, int $mrIid): array
+    {
+        $encodedPath = urlencode($projectPath);
+
+        return $this->request('GET', "/projects/{$encodedPath}/merge_requests/{$mrIid}/changes")->json();
+    }
+
+    /** Post a general note (comment) on a merge request. */
+    public function createMergeRequestNote(string $projectPath, int $mrIid, string $body): array
+    {
+        $encodedPath = urlencode($projectPath);
+
+        return $this->request('POST', "/projects/{$encodedPath}/merge_requests/{$mrIid}/notes", [], ['body' => $body])->json();
+    }
+
     /** Search projects by name. */
     public function searchProjects(string $query, int $perPage = 5): array
     {
