@@ -1,4 +1,4 @@
-<div x-data="{ chatSidebarOpen: false }" class="flex flex-col h-full">
+<div x-data="{ chatSidebarOpen: false }" class="flex flex-col h-full flex-1 min-w-0">
 
     {{-- Mobile top bar --}}
     <div class="lg:hidden flex-shrink-0 flex items-center gap-3 px-4 h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-20">
@@ -167,8 +167,8 @@
             </div>
 
             {{-- Input --}}
-            <div class="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-                <form @submit.prevent="sendMessage()" class="flex gap-2 items-end">
+            <div class="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 w-full">
+                <form @submit.prevent="sendMessage()" class="flex gap-2 items-end w-full">
                     <button type="button"
                         @mousedown="startRecording()" @mouseup="stopRecording()" @touchstart.prevent="startRecording()" @touchend.prevent="stopRecording()"
                         class="flex-shrink-0 p-2.5 sm:p-3 rounded-xl border transition-colors"
