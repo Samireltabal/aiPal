@@ -394,7 +394,7 @@ document.addEventListener('alpine:init', () => {
 
     const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-    async function saveLocation(lat, lon, source = 'browser') {
+    async function saveLocation(lat, lon, source = 'browser', force = false) {
         try {
             const res = await fetch('/api/v1/location', {
                 method: 'POST',
@@ -404,17 +404,21 @@ document.addEventListener('alpine:init', () => {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': getCsrf(),
                 },
-                body: JSON.stringify({ latitude: lat, longitude: lon, source }),
+                body: JSON.stringify({ latitude: lat, longitude: lon, source, force }),
             });
 
             if (!res.ok) return null;
             const data = await res.json();
             if (data.updated && data.location) {
                 showToast('📍 Saved your location as ' + data.location);
-                // Tell Livewire to refresh components that might depend on location
+                // Refresh Livewire components that depend on location
                 if (window.Livewire) {
                     window.Livewire.dispatch('location-updated');
+                    // Also refresh any mounted WeatherCard so the new data shows immediately
+                    setTimeout(() => { window.location.reload(); }, 1200);
                 }
+            } else if (force) {
+                showToast('⏱️ Already up to date.');
             }
             return data;
         } catch (_) { return null; }
@@ -441,13 +445,14 @@ document.addEventListener('alpine:init', () => {
         return new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    saveLocation(pos.coords.latitude, pos.coords.longitude).then(resolve);
+                    // Explicit button clicks bypass the 10-min throttle
+                    saveLocation(pos.coords.latitude, pos.coords.longitude, 'browser', explicit).then(resolve);
                 },
                 (err) => {
                     if (explicit) showToast('⚠️ Location access denied or unavailable.');
                     resolve(null);
                 },
-                { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
+                { enableHighAccuracy: explicit, timeout: 10000, maximumAge: explicit ? 0 : 600000 },
             );
         });
     }

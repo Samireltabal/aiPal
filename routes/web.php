@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Google\GoogleAuthController;
 use App\Http\Controllers\HealthController;
@@ -50,6 +51,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/google/auth', [GoogleAuthController::class, 'redirect'])->name('google.auth');
     Route::get('/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
     Route::delete('/google/disconnect', [GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
+
+    // Location auto-save endpoint — session-auth, browser fetch with CSRF.
+    // Kept outside the `persona` middleware so it works on onboarding and during setup.
+    Route::post('/api/v1/location', [LocationController::class, 'update'])->name('api.v1.location.update');
+    Route::delete('/api/v1/location', [LocationController::class, 'clear'])->name('api.v1.location.clear');
 
     Route::middleware('persona')->group(function (): void {
         Route::get('/', Dashboard::class)->name('dashboard');

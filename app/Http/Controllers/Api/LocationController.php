@@ -21,15 +21,18 @@ class LocationController extends Controller
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'source' => 'sometimes|string|in:browser,manual',
+            'force' => 'sometimes|boolean',
         ]);
 
         $source = $data['source'] ?? 'browser';
+        $force = (bool) ($data['force'] ?? false);
 
         $result = $this->updater->updateFromCoordinates(
             $request->user(),
             (float) $data['latitude'],
             (float) $data['longitude'],
             $source,
+            force: $force,
         );
 
         return response()->json([
