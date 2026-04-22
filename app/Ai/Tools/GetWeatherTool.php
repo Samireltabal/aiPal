@@ -49,13 +49,11 @@ class GetWeatherTool extends AiTool
         return [
             'location' => $schema->string()
                 ->description('Optional city name (e.g. "Riyadh" or "Paris, France"). If omitted, uses the user\'s saved location.')
-                ->nullable()
-                ->required(),
+                ->nullable(),
             'when' => $schema->string()
-                ->description('Time range for the forecast: "now", "today", "tomorrow", or "week".')
+                ->description('Time range for the forecast: "now", "today", "tomorrow", or "week". Defaults to "now" if omitted.')
                 ->enum(['now', 'today', 'tomorrow', 'week'])
-                ->nullable()
-                ->required(),
+                ->nullable(),
         ];
     }
 
