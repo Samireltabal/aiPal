@@ -26,7 +26,24 @@
     <div class="flex h-full">
         {{ $slot }}
     </div>
+
+    @auth
+        <livewire:unified-search />
+    @endauth
     @livewireScripts
+
+    {{-- Unified search: Cmd+K / Ctrl+K --}}
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === 'k') {
+                const tag = document.activeElement?.tagName?.toLowerCase();
+                const editable = document.activeElement?.isContentEditable;
+                if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
+                e.preventDefault();
+                Livewire.dispatch('search:open');
+            }
+        });
+    </script>
 
     {{-- PWA: service worker + install prompt --}}
     <script>

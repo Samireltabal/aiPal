@@ -65,6 +65,19 @@
             </div>
         </div>
 
+        {{-- Search trigger --}}
+        <div class="px-3 pt-2 pb-1 flex-shrink-0">
+            <button
+                onclick="Livewire.dispatch('search:open')"
+                class="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <span class="flex-1 text-left">Search</span>
+                <kbd class="hidden sm:inline-flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500">
+                    <span>⌘</span><span>K</span>
+                </kbd>
+            </button>
+        </div>
+
         {{-- Nav --}}
         <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">
             @php
