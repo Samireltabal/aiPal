@@ -384,3 +384,103 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 });
+
+// ─── Location auto-save ─────────────────────────────────────────────────────
+// On every page load, silently save the user's location if permission is granted.
+// If permission not yet asked, do nothing (user can opt in via dashboard card or Settings).
+
+(function initLocationAutoSave() {
+    if (!('geolocation' in navigator)) return;
+
+    const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    async function saveLocation(lat, lon, source = 'browser') {
+        try {
+            const res = await fetch('/api/v1/location', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrf(),
+                },
+                body: JSON.stringify({ latitude: lat, longitude: lon, source }),
+            });
+
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data.updated && data.location) {
+                showToast('📍 Saved your location as ' + data.location);
+                // Tell Livewire to refresh components that might depend on location
+                if (window.Livewire) {
+                    window.Livewire.dispatch('location-updated');
+                }
+            }
+            return data;
+        } catch (_) { return null; }
+    }
+
+    function showToast(message) {
+        const existing = document.getElementById('location-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'location-toast';
+        toast.className = 'fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-sm shadow-lg max-w-xs';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transition = 'opacity 300ms';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    async function detectAndSave(explicit = false) {
+        return new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    saveLocation(pos.coords.latitude, pos.coords.longitude).then(resolve);
+                },
+                (err) => {
+                    if (explicit) showToast('⚠️ Location access denied or unavailable.');
+                    resolve(null);
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
+            );
+        });
+    }
+
+    // Silent auto-save if permission already granted
+    async function autoSaveIfGranted() {
+        if (!navigator.permissions) {
+            return;
+        }
+        try {
+            const status = await navigator.permissions.query({ name: 'geolocation' });
+            if (status.state === 'granted') {
+                await detectAndSave(false);
+            }
+        } catch (_) { /* ignore */ }
+    }
+
+    // Hook up explicit 'Detect my location' buttons anywhere in the page
+    function wireButtons() {
+        document.querySelectorAll('[data-action="detect-location"]').forEach((btn) => {
+            if (btn.dataset.locationWired) return;
+            btn.dataset.locationWired = '1';
+            btn.addEventListener('click', () => detectAndSave(true));
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        autoSaveIfGranted();
+        wireButtons();
+    });
+
+    // Also re-wire after Livewire morphs the DOM
+    document.addEventListener('livewire:navigated', wireButtons);
+    document.addEventListener('livewire:morph.updated', wireButtons);
+})();
+

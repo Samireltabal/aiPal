@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Location\MessageLocationHandler;
 use App\Services\WhatsAppService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -24,9 +25,11 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
         public readonly string $phone,
         public readonly ?string $text,
         public readonly ?string $audioMediaId = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
     ) {}
 
-    public function handle(WhatsAppService $whatsApp): void
+    public function handle(WhatsAppService $whatsApp, MessageLocationHandler $locationHandler): void
     {
         $user = User::find($this->userId);
 
@@ -34,11 +37,29 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             return;
         }
 
+        // 1. Native location share (lat/lon directly from payload) — save and reply
+        if ($this->latitude !== null && $this->longitude !== null) {
+            $confirmation = $locationHandler->handleNativeShare($user, $this->latitude, $this->longitude, 'whatsapp');
+            if ($confirmation !== null) {
+                $whatsApp->send($this->phone, $confirmation);
+
+                return;
+            }
+        }
+
         $persona = $user->persona;
 
         $text = $this->resolveText($whatsApp);
 
         if ($text === null) {
+            return;
+        }
+
+        // 2. Text containing a maps URL — save and reply
+        $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
+        if ($urlConfirmation !== null) {
+            $whatsApp->send($this->phone, $urlConfirmation);
+
             return;
         }
 

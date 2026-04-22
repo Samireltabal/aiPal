@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Location\MessageLocationHandler;
 use App\Services\TelegramService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -24,9 +25,11 @@ class ProcessTelegramMessageJob implements ShouldQueue
         public readonly string $chatId,
         public readonly ?string $text,
         public readonly ?string $voiceFileId = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
     ) {}
 
-    public function handle(TelegramService $telegram): void
+    public function handle(TelegramService $telegram, MessageLocationHandler $locationHandler): void
     {
         $user = User::find($this->userId);
 
@@ -34,11 +37,29 @@ class ProcessTelegramMessageJob implements ShouldQueue
             return;
         }
 
+        // 1. Native location share
+        if ($this->latitude !== null && $this->longitude !== null) {
+            $confirmation = $locationHandler->handleNativeShare($user, $this->latitude, $this->longitude, 'telegram');
+            if ($confirmation !== null) {
+                $telegram->send($this->chatId, $confirmation);
+
+                return;
+            }
+        }
+
         $persona = $user->persona;
 
         $text = $this->resolveText($telegram);
 
         if ($text === null) {
+            return;
+        }
+
+        // 2. Maps URL in text
+        $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
+        if ($urlConfirmation !== null) {
+            $telegram->send($this->chatId, $urlConfirmation);
+
             return;
         }
 

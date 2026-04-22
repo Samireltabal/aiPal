@@ -46,6 +46,11 @@
             </div>
         </div>
 
+        {{-- Weather card --}}
+        <div class="mb-6">
+            <livewire:weather-card />
+        </div>
+
         {{-- Main grid --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
