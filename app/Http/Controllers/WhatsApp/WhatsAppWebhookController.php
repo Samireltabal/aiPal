@@ -52,14 +52,16 @@ class WhatsAppWebhookController
         $from = (string) ($message['from'] ?? '');
         $type = $message['type'] ?? '';
 
-        if ($from === '' || ! in_array($type, ['text', 'audio'], true)) {
+        if ($from === '' || ! in_array($type, ['text', 'audio', 'location'], true)) {
             return response('OK', 200);
         }
 
         $text = $type === 'text' ? trim(data_get($message, 'text.body', '')) : null;
         $audioMediaId = $type === 'audio' ? data_get($message, 'audio.id') : null;
+        $latitude = $type === 'location' ? data_get($message, 'location.latitude') : null;
+        $longitude = $type === 'location' ? data_get($message, 'location.longitude') : null;
 
-        if ($text === '' && $audioMediaId === null) {
+        if ($text === '' && $audioMediaId === null && $latitude === null) {
             return response('OK', 200);
         }
 
@@ -79,7 +81,14 @@ class WhatsAppWebhookController
             return response('OK', 200);
         }
 
-        ProcessWhatsAppMessageJob::dispatch($user->id, $from, $text ?: null, $audioMediaId);
+        ProcessWhatsAppMessageJob::dispatch(
+            $user->id,
+            $from,
+            $text ?: null,
+            $audioMediaId,
+            $latitude !== null ? (float) $latitude : null,
+            $longitude !== null ? (float) $longitude : null,
+        );
 
         return response('OK', 200);
     }

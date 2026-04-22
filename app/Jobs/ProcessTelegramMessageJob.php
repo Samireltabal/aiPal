@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Location\MessageLocationHandler;
 use App\Services\TelegramService;
 use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,14 +26,26 @@ class ProcessTelegramMessageJob implements ShouldQueue
         public readonly string $chatId,
         public readonly ?string $text,
         public readonly ?string $voiceFileId = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
     ) {}
 
-    public function handle(TelegramService $telegram): void
+    public function handle(TelegramService $telegram, MessageLocationHandler $locationHandler): void
     {
         $user = User::find($this->userId);
 
         if (! $user) {
             return;
+        }
+
+        // 1. Native location share
+        if ($this->latitude !== null && $this->longitude !== null) {
+            $confirmation = $locationHandler->handleNativeShare($user, $this->latitude, $this->longitude, 'telegram');
+            if ($confirmation !== null) {
+                $telegram->send($this->chatId, $confirmation);
+
+                return;
+            }
         }
 
         $persona = $user->persona;
@@ -43,6 +56,7 @@ class ProcessTelegramMessageJob implements ShouldQueue
             return;
         }
 
+        // 2. Workflow trigger (explicit command intent)
         $matcher = app(WorkflowMessageMatcher::class);
         $workflow = $matcher->match($user, 'telegram', $text);
 
@@ -54,6 +68,14 @@ class ProcessTelegramMessageJob implements ShouldQueue
                 'text' => $text,
                 'from' => $this->chatId,
             ]);
+
+            return;
+        }
+
+        // 3. Maps URL in text
+        $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
+        if ($urlConfirmation !== null) {
+            $telegram->send($this->chatId, $urlConfirmation);
 
             return;
         }

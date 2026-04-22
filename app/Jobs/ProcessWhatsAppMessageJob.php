@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Location\MessageLocationHandler;
 use App\Services\WhatsAppService;
 use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,14 +26,26 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
         public readonly string $phone,
         public readonly ?string $text,
         public readonly ?string $audioMediaId = null,
+        public readonly ?float $latitude = null,
+        public readonly ?float $longitude = null,
     ) {}
 
-    public function handle(WhatsAppService $whatsApp): void
+    public function handle(WhatsAppService $whatsApp, MessageLocationHandler $locationHandler): void
     {
         $user = User::find($this->userId);
 
         if (! $user) {
             return;
+        }
+
+        // 1. Native location share (lat/lon directly from payload) — save and reply
+        if ($this->latitude !== null && $this->longitude !== null) {
+            $confirmation = $locationHandler->handleNativeShare($user, $this->latitude, $this->longitude, 'whatsapp');
+            if ($confirmation !== null) {
+                $whatsApp->send($this->phone, $confirmation);
+
+                return;
+            }
         }
 
         $persona = $user->persona;
@@ -43,6 +56,7 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             return;
         }
 
+        // 2. Workflow trigger (explicit command intent)
         $matcher = app(WorkflowMessageMatcher::class);
         $workflow = $matcher->match($user, 'whatsapp', $text);
 
@@ -54,6 +68,14 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
                 'text' => $text,
                 'from' => $this->phone,
             ]);
+
+            return;
+        }
+
+        // 3. Text containing a maps URL — save and reply
+        $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
+        if ($urlConfirmation !== null) {
+            $whatsApp->send($this->phone, $urlConfirmation);
 
             return;
         }

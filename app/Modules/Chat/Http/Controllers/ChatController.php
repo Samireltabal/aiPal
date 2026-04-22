@@ -8,6 +8,7 @@ use App\Ai\Agents\Chat\ChatAgent;
 use App\Http\Controllers\Controller;
 use App\Jobs\ExtractMemoriesJob;
 use App\Modules\Chat\Http\Requests\ChatRequest;
+use App\Services\Location\MessageLocationHandler;
 use App\Services\MemoryRetriever;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChatController extends Controller
 {
-    public function __construct(private readonly MemoryRetriever $memories) {}
+    public function __construct(
+        private readonly MemoryRetriever $memories,
+        private readonly MessageLocationHandler $locationHandler,
+    ) {}
 
     /**
      * Stream a chat response via Server-Sent Events.
@@ -29,7 +33,23 @@ class ChatController extends Controller
     public function __invoke(ChatRequest $request): StreamedResponse
     {
         $user = $request->user();
-        $message = $request->input('message');
+        $message = (string) $request->input('message');
+
+        // Short-circuit: if the message contains a recognizable maps URL, save the location and reply inline.
+        $locationConfirmation = $this->locationHandler->handleTextMaybeContainingUrl($user, $message, 'maps_url');
+        if ($locationConfirmation !== null) {
+            return response()->stream(function () use ($locationConfirmation): void {
+                echo 'event: delta'."\n";
+                echo 'data: '.json_encode(['text' => $locationConfirmation])."\n\n";
+                echo 'event: done'."\n";
+                echo 'data: '.json_encode(['conversation_id' => null])."\n\n";
+            }, 200, [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'X-Accel-Buffering' => 'no',
+            ]);
+        }
+
         $agent = new ChatAgent;
 
         $systemPrompt = $user->persona?->system_prompt

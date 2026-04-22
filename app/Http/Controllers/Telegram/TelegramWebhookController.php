@@ -29,12 +29,14 @@ class TelegramWebhookController
         $chatId = (string) ($message['chat']['id'] ?? '');
         $text = trim($message['text'] ?? '');
         $voiceFileId = $message['voice']['file_id'] ?? null;
+        $latitude = isset($message['location']['latitude']) ? (float) $message['location']['latitude'] : null;
+        $longitude = isset($message['location']['longitude']) ? (float) $message['location']['longitude'] : null;
 
         if ($chatId === '') {
             return response('OK', 200);
         }
 
-        if ($text === '' && $voiceFileId === null) {
+        if ($text === '' && $voiceFileId === null && $latitude === null) {
             return response('OK', 200);
         }
 
@@ -61,7 +63,14 @@ class TelegramWebhookController
             return response('OK', 200);
         }
 
-        ProcessTelegramMessageJob::dispatch($user->id, $chatId, $text ?: null, $voiceFileId);
+        ProcessTelegramMessageJob::dispatch(
+            $user->id,
+            $chatId,
+            $text ?: null,
+            $voiceFileId,
+            $latitude,
+            $longitude,
+        );
 
         return response('OK', 200);
     }
