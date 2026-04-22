@@ -95,8 +95,11 @@ document.addEventListener('alpine:init', () => {
         input: '',
         messages: [],
         streaming: false,
+        allConversations: initialConversations ?? [],
         conversations: initialConversations ?? [],
         activeConversationId: initialConversationId ?? null,
+        conversationSearch: '',
+        searchDebounce: null,
 
         recording: false,
         transcribing: false,
@@ -149,12 +152,43 @@ document.addEventListener('alpine:init', () => {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    this.conversations = (data.data ?? []).map((c) => ({
+                    const mapped = (data.data ?? []).map((c) => ({
                         id: c.id,
                         title: c.title ?? 'Untitled',
                     }));
+                    this.allConversations = mapped;
+                    this.conversations = mapped;
                 }
             } catch (_) {}
+        },
+
+        onConversationSearchInput(value) {
+            this.conversationSearch = value;
+            clearTimeout(this.searchDebounce);
+            const query = value.trim();
+            if (query.length < 2) {
+                this.conversations = this.allConversations;
+                return;
+            }
+            this.searchDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/v1/conversations/search?q=${encodeURIComponent(query)}`, {
+                        headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/json' },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.conversations = (data.data ?? []).map((c) => ({
+                            id: c.id,
+                            title: c.title ?? 'Untitled',
+                        }));
+                    }
+                } catch (_) {}
+            }, 300);
+        },
+
+        clearConversationSearch() {
+            this.conversationSearch = '';
+            this.conversations = this.allConversations;
         },
 
         async deleteConversation(id) {
@@ -166,6 +200,7 @@ document.addEventListener('alpine:init', () => {
                 this.activeConversationId = null;
                 this.messages = [];
             }
+            this.allConversations = this.allConversations.filter((c) => c.id !== id);
             this.conversations = this.conversations.filter((c) => c.id !== id);
         },
 

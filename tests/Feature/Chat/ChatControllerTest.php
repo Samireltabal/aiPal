@@ -171,6 +171,91 @@ class ChatControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_conversations_can_be_searched_by_title(): void
+    {
+        $user = User::factory()->create();
+
+        $matchId = (string) Str::uuid();
+        $noMatchId = (string) Str::uuid();
+
+        DB::table('agent_conversations')->insert([
+            ['id' => $matchId, 'user_id' => $user->id, 'title' => 'Quarterly planning session', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => $noMatchId, 'user_id' => $user->id, 'title' => 'Unrelated topic', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/conversations/search?q=quarterly');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->toArray();
+        $this->assertContains($matchId, $ids);
+        $this->assertNotContains($noMatchId, $ids);
+    }
+
+    public function test_conversations_can_be_searched_by_message_content(): void
+    {
+        $user = User::factory()->create();
+
+        $matchId = (string) Str::uuid();
+        $noMatchId = (string) Str::uuid();
+
+        DB::table('agent_conversations')->insert([
+            ['id' => $matchId, 'user_id' => $user->id, 'title' => 'Generic title', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => $noMatchId, 'user_id' => $user->id, 'title' => 'Another title', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        DB::table('agent_conversation_messages')->insert([
+            'id' => (string) Str::uuid(),
+            'conversation_id' => $matchId,
+            'user_id' => $user->id,
+            'agent' => 'chat',
+            'role' => 'user',
+            'content' => 'Can you help me with my deployment pipeline?',
+            'attachments' => '[]',
+            'tool_calls' => '[]',
+            'tool_results' => '[]',
+            'usage' => '{}',
+            'meta' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/conversations/search?q=deployment');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->toArray();
+        $this->assertContains($matchId, $ids);
+        $this->assertNotContains($noMatchId, $ids);
+    }
+
+    public function test_search_requires_minimum_two_characters(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/conversations/search?q=a');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_search_does_not_return_other_users_conversations(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        DB::table('agent_conversations')->insert([
+            'id' => (string) Str::uuid(),
+            'user_id' => $userA->id,
+            'title' => 'secret planning',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($userB)->getJson('/api/v1/conversations/search?q=planning');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
     private function createConversation(User $user): string
     {
         $id = (string) Str::uuid();

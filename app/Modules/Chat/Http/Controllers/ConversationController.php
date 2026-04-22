@@ -45,6 +45,39 @@ class ConversationController extends Controller
     }
 
     /**
+     * Search conversations by title or message content.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = trim((string) $request->query('q', ''));
+
+        if ($query === '' || strlen($query) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $safeQuery = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
+        $like = "%{$safeQuery}%";
+        $op = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        $conversations = DB::table('agent_conversations as ac')
+            ->where('ac.user_id', $request->user()->id)
+            ->where(function ($q) use ($like, $op): void {
+                $q->where('ac.title', $op, $like)
+                    ->orWhereExists(function ($sub) use ($like, $op): void {
+                        $sub->select(DB::raw(1))
+                            ->from('agent_conversation_messages as m')
+                            ->whereColumn('m.conversation_id', 'ac.id')
+                            ->where('m.content', $op, $like);
+                    });
+            })
+            ->orderByDesc('ac.updated_at')
+            ->limit(20)
+            ->get(['ac.id', 'ac.title']);
+
+        return response()->json(['data' => $conversations]);
+    }
+
+    /**
      * Delete a conversation and all its messages.
      */
     public function destroy(Request $request, string $id): Response

@@ -64,12 +64,28 @@
                 </div>
             </div>
 
-            <div class="p-3">
+            <div class="p-3 space-y-2">
                 <button @click="newConversation(); chatSidebarOpen = false"
                     class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     New chat
                 </button>
+
+                <div class="relative">
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text"
+                        placeholder="Search conversations…"
+                        :value="conversationSearch"
+                        @input="onConversationSearchInput($event.target.value)"
+                        class="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-gray-100 dark:bg-gray-700 border border-transparent focus:border-indigo-400 focus:outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 transition-colors">
+                    <button x-show="conversationSearch.length > 0"
+                        @click="clearConversationSearch()"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
 
             <nav class="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
@@ -84,6 +100,9 @@
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
+                </template>
+                <template x-if="conversations.length === 0 && conversationSearch.trim().length >= 2">
+                    <p class="px-2 py-3 text-xs text-gray-400 dark:text-gray-500 text-center">No conversations found</p>
                 </template>
             </nav>
 

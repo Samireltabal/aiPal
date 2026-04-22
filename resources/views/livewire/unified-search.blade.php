@@ -22,7 +22,7 @@
             <input
                 wire:model.live.debounce.300ms="query"
                 type="text"
-                placeholder="Search memories, notes, tasks, documents…"
+                placeholder="Search memories, notes, tasks, documents, conversations…"
                 autofocus
                 class="flex-1 text-sm bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
                 x-on:keydown.escape="$wire.close()"
@@ -52,6 +52,7 @@
                                 @if($result['type'] === 'memory') bg-purple-100 dark:bg-purple-900/40
                                 @elseif($result['type'] === 'note') bg-amber-100 dark:bg-amber-900/40
                                 @elseif($result['type'] === 'task') bg-indigo-100 dark:bg-indigo-900/40
+                                @elseif($result['type'] === 'conversation') bg-sky-100 dark:bg-sky-900/40
                                 @else bg-emerald-100 dark:bg-emerald-900/40
                                 @endif">
                                 @if($result['type'] === 'memory')
@@ -60,6 +61,8 @@
                                     <svg class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 @elseif($result['type'] === 'task')
                                     <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                @elseif($result['type'] === 'conversation')
+                                    <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                                 @else
                                     <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 @endif
@@ -86,7 +89,7 @@
             </div>
         @else
             <div class="px-4 py-8 text-center text-xs text-gray-400 dark:text-gray-500">
-                Search across your memories, notes, tasks, and documents
+                Search across your memories, notes, tasks, documents, and conversations
             </div>
         @endif
     </div>

@@ -110,9 +110,39 @@ class UnifiedSearchService
             ];
         }
 
-        // Sort semantic results by distance, then append keyword task matches
+        // Conversations — keyword match on title and message content
+        $op = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $conversationLike = "%{$safeQuery}%";
+        $conversations = DB::table('agent_conversations as ac')
+            ->where('ac.user_id', $user->id)
+            ->where(function ($q) use ($conversationLike, $op): void {
+                $q->where('ac.title', $op, $conversationLike)
+                    ->orWhereExists(function ($sub) use ($conversationLike, $op): void {
+                        $sub->select(DB::raw(1))
+                            ->from('agent_conversation_messages as m')
+                            ->whereColumn('m.conversation_id', 'ac.id')
+                            ->where('m.content', $op, $conversationLike);
+                    });
+            })
+            ->orderByDesc('ac.updated_at')
+            ->limit(3)
+            ->get(['ac.id', 'ac.title']);
+
+        $conversationResults = [];
+        foreach ($conversations as $conv) {
+            $conversationResults[] = [
+                'type' => 'conversation',
+                'id' => $conv->id,
+                'title' => $conv->title ?? 'Untitled',
+                'excerpt' => 'Chat conversation',
+                'url' => '/chat',
+                'distance' => null,
+            ];
+        }
+
+        // Sort semantic results by distance, then append keyword task + conversation matches
         usort($results, fn ($a, $b) => $a['distance'] <=> $b['distance']);
-        $results = array_merge($results, $taskResults);
+        $results = array_merge($results, $taskResults, $conversationResults);
 
         return array_slice($results, 0, $limit);
     }
