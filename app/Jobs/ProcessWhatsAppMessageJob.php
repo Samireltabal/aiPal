@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Transcription;
@@ -39,6 +40,21 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
         $text = $this->resolveText($whatsApp);
 
         if ($text === null) {
+            return;
+        }
+
+        $matcher = app(WorkflowMessageMatcher::class);
+        $workflow = $matcher->match($user, 'whatsapp', $text);
+
+        if ($workflow !== null) {
+            $whatsApp->send($this->phone, "Running workflow \"{$workflow->name}\"...");
+
+            RunWorkflowJob::dispatch($workflow->id, 'message', [
+                'channel' => 'whatsapp',
+                'text' => $text,
+                'from' => $this->phone,
+            ]);
+
             return;
         }
 
