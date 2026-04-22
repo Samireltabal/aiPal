@@ -46,7 +46,20 @@ class DailyBriefingJob implements ShouldQueue
             calendarContext: $calendarContext,
         );
 
-        $briefingContent = (string) $agent->prompt($agent->buildPrompt());
+        try {
+            $briefingContent = (string) $agent->prompt(
+                $agent->buildPrompt(),
+                provider: config('ai.agents.daily_briefing.provider'),
+                model: config('ai.agents.daily_briefing.model'),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('DailyBriefingAgent failed — check DAILY_BRIEFING_PROVIDER key', [
+                'error' => $e->getMessage(),
+                'user_id' => $this->userId,
+            ]);
+
+            return;
+        }
 
         $user->notify(new DailyBriefingNotification($briefingContent, $date));
 

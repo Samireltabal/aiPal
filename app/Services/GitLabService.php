@@ -38,13 +38,19 @@ class GitLabService
             $endpoint = '/merge_requests';
         }
 
-        return $this->request('GET', $endpoint, [
+        $params = [
             'state' => $state,
             'per_page' => $perPage,
             'order_by' => 'updated_at',
             'sort' => 'desc',
-            'scope' => 'assigned_to_me',
-        ])->json();
+        ];
+
+        // scope=assigned_to_me only applies to the global /merge_requests endpoint
+        if ($projectPath === null) {
+            $params['scope'] = 'assigned_to_me';
+        }
+
+        return $this->request('GET', $endpoint, $params)->json();
     }
 
     /** Get a single merge request. */

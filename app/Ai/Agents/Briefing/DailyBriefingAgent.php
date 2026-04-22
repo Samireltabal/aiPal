@@ -4,14 +4,9 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents\Briefing;
 
-use Laravel\Ai\Attributes\Model;
-use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Contracts\Agent;
-use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 
-#[Provider(Lab::Anthropic)]
-#[Model('claude-haiku-4-5-20251001')]
 class DailyBriefingAgent implements Agent
 {
     use Promptable;

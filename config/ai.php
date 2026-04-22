@@ -8,12 +8,18 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'default' => env('AI_DEFAULT_PROVIDER', 'anthropic'),
+    'default' => strtolower(env('AI_DEFAULT_PROVIDER', 'anthropic')),
     'default_for_images' => env('AI_DEFAULT_IMAGES_PROVIDER', 'openai'),
-    'default_for_audio' => env('AI_DEFAULT_AUDIO_PROVIDER', 'openai'),
-    'default_for_transcription' => env('AI_DEFAULT_STT_PROVIDER', 'openai'),
+    'default_for_audio' => env('AI_DEFAULT_AUDIO_PROVIDER', env('TTS_PROVIDER', 'openai')),
+    'default_for_transcription' => env('AI_DEFAULT_STT_PROVIDER', env('STT_PROVIDER', 'openai')),
     'default_for_embeddings' => env('AI_DEFAULT_EMBEDDINGS_PROVIDER', 'openai'),
     'default_for_reranking' => 'cohere',
+
+    'embedding_model' => env('AI_EMBEDDING_MODEL') ?: null,
+    'embedding_dimensions' => (int) env('AI_EMBEDDING_DIMENSIONS', 1536),
+
+    'stt_model' => env('AI_STT_MODEL') ?: null,
+    'tts_model' => env('AI_TTS_MODEL') ?: null,
 
     /*
     |--------------------------------------------------------------------------
@@ -33,6 +39,31 @@ return [
         'xai' => env('XAI_DEFAULT_MODEL', 'grok-2-latest'),
         'gemini' => env('GEMINI_DEFAULT_MODEL', 'gemini-2.0-flash'),
         'ollama' => env('OLLAMA_DEFAULT_MODEL', 'llama3.2'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Agent Provider & Model Overrides
+    |--------------------------------------------------------------------------
+    |
+    | Each background agent can use a different provider/model from the default.
+    | Leave blank to fall back to the default provider and its default model.
+    |
+    */
+
+    'agents' => [
+        'memory_extractor' => [
+            'provider' => env('MEMORY_EXTRACTOR_PROVIDER') ?: null,
+            'model' => env('MEMORY_EXTRACTOR_MODEL') ?: null,
+        ],
+        'daily_briefing' => [
+            'provider' => env('DAILY_BRIEFING_PROVIDER') ?: null,
+            'model' => env('DAILY_BRIEFING_MODEL') ?: null,
+        ],
+        'reminder_parser' => [
+            'provider' => env('REMINDER_PARSER_PROVIDER') ?: null,
+            'model' => env('REMINDER_PARSER_MODEL') ?: null,
+        ],
     ],
 
     /*

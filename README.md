@@ -152,6 +152,37 @@ AI_DEFAULT_PROVIDER=ollama
 
 ---
 
+## AI Model Configuration
+
+Each function in aiPal can use a different AI provider and model, configured independently via `.env`. Changes take effect after rebuilding the container.
+
+| Function | Env Variables | Compatible Providers | Notes |
+|---|---|---|---|
+| **Chat** | `AI_DEFAULT_PROVIDER`<br>`{PROVIDER}_DEFAULT_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Main conversation |
+| **Memory Extraction** | `MEMORY_EXTRACTOR_PROVIDER`<br>`MEMORY_EXTRACTOR_MODEL` | anthropic, openai, gemini | Requires structured output support |
+| **Reminder Parser** | `REMINDER_PARSER_PROVIDER`<br>`REMINDER_PARSER_MODEL` | anthropic, openai, gemini | Requires structured output support |
+| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email |
+| **Embeddings** | `AI_DEFAULT_EMBEDDINGS_PROVIDER`<br>`AI_EMBEDDING_MODEL`<br>`AI_EMBEDDING_DIMENSIONS` | openai, ollama, gemini | Changing dimensions requires DB migration + re-ingestion |
+| **Voice STT** | `AI_DEFAULT_STT_PROVIDER`<br>`AI_STT_MODEL` | openai, gemini | Voice-to-text transcription |
+| **Voice TTS** | `AI_DEFAULT_AUDIO_PROVIDER`<br>`AI_TTS_MODEL` | openai, eleven | Text-to-speech output |
+
+If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT_PROVIDER` and that provider's default model.
+
+### Provider Default Models
+
+| Provider | Env Variable | Default |
+|---|---|---|
+| Anthropic | `ANTHROPIC_DEFAULT_MODEL` | `claude-sonnet-4-6` |
+| OpenAI | `OPENAI_DEFAULT_MODEL` | `gpt-4o` |
+| DeepSeek | `DEEPSEEK_DEFAULT_MODEL` | `deepseek-chat` |
+| xAI (Grok) | `XAI_DEFAULT_MODEL` | `grok-2-latest` |
+| Gemini | `GEMINI_DEFAULT_MODEL` | `gemini-2.0-flash` |
+| Ollama | `OLLAMA_DEFAULT_MODEL` | `llama3.2` |
+
+> The current active configuration is also visible in the app under **Settings → AI Model Configuration**.
+
+---
+
 ## Setup Guides
 
 | Integration | Guide |
