@@ -23,6 +23,9 @@ class ChatAgent implements Agent, Conversational, HasTools
 
     private ?User $user = null;
 
+    /** @var array<int, string>|null Whitelist of tool names — when set, overrides user-level tool settings. */
+    private ?array $toolNameFilter = null;
+
     public function withSystemPrompt(string $prompt): static
     {
         $this->systemPrompt = $prompt;
@@ -33,6 +36,18 @@ class ChatAgent implements Agent, Conversational, HasTools
     public function withUser(User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    /**
+     * Restrict the agent to a specific whitelist of tool names.
+     *
+     * @param  array<int, string>  $toolNames
+     */
+    public function withToolNames(array $toolNames): static
+    {
+        $this->toolNameFilter = $toolNames;
 
         return $this;
     }
@@ -48,6 +63,17 @@ class ChatAgent implements Agent, Conversational, HasTools
             return [];
         }
 
-        return app(ToolRegistry::class)->forUser($this->user);
+        $tools = app(ToolRegistry::class)->forUser($this->user);
+
+        if ($this->toolNameFilter === null) {
+            return $tools;
+        }
+
+        $allowed = array_flip($this->toolNameFilter);
+
+        return array_values(array_filter(
+            $tools,
+            fn ($tool) => isset($allowed[$tool::toolName()]),
+        ));
     }
 }
