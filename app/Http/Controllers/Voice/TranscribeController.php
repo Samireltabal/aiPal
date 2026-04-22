@@ -19,8 +19,9 @@ class TranscribeController extends Controller
 
         $file = $request->file('audio');
 
+        $pending = Transcription::fromUpload($file);
         $model = config('ai.stt_model') ?: null;
-        $transcript = Transcription::fromUpload($file)->generate(model: $model);
+        $transcript = $model !== null ? $pending->generate(model: $model) : $pending->generate();
 
         return response()->json(['transcript' => (string) $transcript]);
     }

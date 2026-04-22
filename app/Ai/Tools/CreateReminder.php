@@ -64,7 +64,7 @@ class CreateReminder extends AiTool
                 model: config('ai.agents.reminder_parser.model'),
             );
         } catch (\Throwable $e) {
-            return 'Sorry, I couldn\'t set that reminder — the reminder service is unavailable. Please check your AI provider configuration (REMINDER_PARSER_PROVIDER).';
+            return __('Sorry, I couldn\'t set that reminder — the reminder service is unavailable. Please check your AI provider configuration (REMINDER_PARSER_PROVIDER).');
         }
 
         $remindAt = now()->parse($parsed['remind_at']);
