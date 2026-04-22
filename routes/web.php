@@ -9,6 +9,7 @@ use App\Http\Controllers\Telegram\TelegramWebhookController;
 use App\Http\Controllers\Voice\TranscribeController;
 use App\Http\Controllers\Voice\TtsController;
 use App\Http\Controllers\WhatsApp\WhatsAppWebhookController;
+use App\Http\Controllers\WorkflowWebhookController;
 use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -19,6 +20,7 @@ use App\Livewire\Memories;
 use App\Livewire\Onboarding;
 use App\Livewire\Productivity;
 use App\Livewire\Settings;
+use App\Livewire\Workflows;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,11 @@ Route::post('/webhooks/telegram', TelegramWebhookController::class)->name('webho
 // WhatsApp webhook — GET for verification challenge, POST for messages, no auth, CSRF excluded
 Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
 Route::post('/webhooks/whatsapp', WhatsAppWebhookController::class)->name('webhooks.whatsapp');
+
+// Generic workflow webhook — token in URL is the auth, rate-limited
+Route::post('/webhooks/workflow/{token}', WorkflowWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('webhooks.workflow');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', Login::class)->name('login');
@@ -66,6 +73,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/memories', Memories::class)->name('memories');
         Route::get('/documents', Documents::class)->name('documents');
         Route::get('/productivity', Productivity::class)->name('productivity');
+        Route::get('/workflows', Workflows::class)->name('workflows');
         Route::get('/memories/export', function () {
             $user = Auth::user();
             $memories = $user->memories()->latest()->get(['content', 'source', 'created_at']);

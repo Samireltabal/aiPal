@@ -8,6 +8,7 @@ use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
 use App\Services\Location\MessageLocationHandler;
 use App\Services\WhatsAppService;
+use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Transcription;
@@ -55,7 +56,23 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             return;
         }
 
-        // 2. Text containing a maps URL — save and reply
+        // 2. Workflow trigger (explicit command intent)
+        $matcher = app(WorkflowMessageMatcher::class);
+        $workflow = $matcher->match($user, 'whatsapp', $text);
+
+        if ($workflow !== null) {
+            $whatsApp->send($this->phone, "Running workflow \"{$workflow->name}\"...");
+
+            RunWorkflowJob::dispatch($workflow->id, 'message', [
+                'channel' => 'whatsapp',
+                'text' => $text,
+                'from' => $this->phone,
+            ]);
+
+            return;
+        }
+
+        // 3. Text containing a maps URL — save and reply
         $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
         if ($urlConfirmation !== null) {
             $whatsApp->send($this->phone, $urlConfirmation);

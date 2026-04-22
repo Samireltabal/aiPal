@@ -8,6 +8,7 @@ use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
 use App\Services\Location\MessageLocationHandler;
 use App\Services\TelegramService;
+use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Transcription;
@@ -55,7 +56,23 @@ class ProcessTelegramMessageJob implements ShouldQueue
             return;
         }
 
-        // 2. Maps URL in text
+        // 2. Workflow trigger (explicit command intent)
+        $matcher = app(WorkflowMessageMatcher::class);
+        $workflow = $matcher->match($user, 'telegram', $text);
+
+        if ($workflow !== null) {
+            $telegram->send($this->chatId, "Running workflow \"{$workflow->name}\"...");
+
+            RunWorkflowJob::dispatch($workflow->id, 'message', [
+                'channel' => 'telegram',
+                'text' => $text,
+                'from' => $this->chatId,
+            ]);
+
+            return;
+        }
+
+        // 3. Maps URL in text
         $urlConfirmation = $locationHandler->handleTextMaybeContainingUrl($user, $text, 'maps_url');
         if ($urlConfirmation !== null) {
             $telegram->send($this->chatId, $urlConfirmation);
