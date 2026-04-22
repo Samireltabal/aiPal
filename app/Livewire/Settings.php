@@ -102,6 +102,11 @@ class Settings extends Component
 
     public bool $gitlabSaved = false;
 
+    #[Validate('nullable|string|max:255')]
+    public ?string $githubToken = null;
+
+    public bool $githubSaved = false;
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -129,6 +134,7 @@ class Settings extends Component
         $this->jiraToken = $user->jira_token;
         $this->gitlabHost = $user->gitlab_host ?? 'https://gitlab.com';
         $this->gitlabToken = $user->gitlab_token;
+        $this->githubToken = $user->github_token;
     }
 
     public function regenerate(): void
@@ -252,6 +258,17 @@ class Settings extends Component
         app(WebPushService::class)->send($user, '🔔 aiPal', 'Push notifications are working!', '/');
 
         $this->pushTestSent = true;
+    }
+
+    public function saveGitHubSettings(): void
+    {
+        $this->validateOnly('githubToken');
+
+        Auth::user()->update([
+            'github_token' => $this->githubToken ?: null,
+        ]);
+
+        $this->githubSaved = true;
     }
 
     public function saveBriefingSettings(): void
