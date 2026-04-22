@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace App\Ai\Agents\Memory;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Laravel\Ai\Attributes\Model;
-use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
-use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 
-#[Provider(Lab::OpenAI)]
-#[Model('gpt-4o-mini')]
 class MemoryExtractorAgent implements Agent, HasStructuredOutput
 {
     use Promptable;

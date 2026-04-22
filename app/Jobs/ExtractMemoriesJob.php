@@ -11,6 +11,7 @@ use App\Services\EmbeddingService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ExtractMemoriesJob implements ShouldQueue
 {
@@ -43,7 +44,20 @@ class ExtractMemoriesJob implements ShouldQueue
 
         $transcript = $messages->map(fn ($m) => ucfirst($m->role).': '.$m->content)->join("\n");
 
-        $response = (new MemoryExtractorAgent)->prompt($transcript);
+        try {
+            $response = (new MemoryExtractorAgent)->prompt(
+                $transcript,
+                provider: config('ai.agents.memory_extractor.provider'),
+                model: config('ai.agents.memory_extractor.model'),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('MemoryExtractorAgent failed — check MEMORY_EXTRACTOR_PROVIDER key', [
+                'error' => $e->getMessage(),
+                'conversation_id' => $this->conversationId,
+            ]);
+
+            return;
+        }
 
         $facts = $response['facts'] ?? [];
 

@@ -56,7 +56,16 @@ class CreateReminder extends AiTool
         $naturalLanguage = $request['natural_language'];
 
         $defaultChannel = $this->user->default_reminder_channel ?? 'email';
-        $parsed = (new ReminderParserAgent($defaultChannel))->prompt($naturalLanguage);
+
+        try {
+            $parsed = (new ReminderParserAgent($defaultChannel))->prompt(
+                $naturalLanguage,
+                provider: config('ai.agents.reminder_parser.provider'),
+                model: config('ai.agents.reminder_parser.model'),
+            );
+        } catch (\Throwable $e) {
+            return 'Sorry, I couldn\'t set that reminder — the reminder service is unavailable. Please check your AI provider configuration (REMINDER_PARSER_PROVIDER).';
+        }
 
         $remindAt = now()->parse($parsed['remind_at']);
 

@@ -602,6 +602,63 @@
                     @endforeach
                 </div>
             </div>
+
+            {{-- AI Model Configuration --}}
+            <div class="mt-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">AI Model Configuration</h2>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Configure providers and models via your <code class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700 font-mono text-xs">.env</code> file, then rebuild the container. Values shown reflect the current active configuration.</p>
+
+                <div class="space-y-3">
+                    @foreach ($aiConfig as $fn)
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $fn['name'] }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $fn['description'] }}</p>
+                            </div>
+                            <div class="flex-shrink-0 text-right">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                                    {{ $fn['provider'] }}
+                                </span>
+                                @if ($fn['model'] !== '—')
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">{{ $fn['model'] }}</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-x-6 gap-y-2">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Env variables</p>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach ($fn['env_vars'] as $var)
+                                    <code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300">{{ $var }}</code>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Compatible providers</p>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach ($fn['compatible'] as $provider)
+                                    <span class="px-1.5 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{ $provider }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!empty($fn['note']))
+                        <p class="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            {{ $fn['note'] }}
+                        </p>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
         </div>
     </main>
 </div>

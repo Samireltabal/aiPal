@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Memory;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class MemoryRetriever
 {
@@ -15,7 +16,16 @@ class MemoryRetriever
     /** @return Collection<int, Memory> */
     public function retrieve(User $user, string $query, int $limit = 8): Collection
     {
-        $embedding = $this->embeddings->embedText($query);
+        try {
+            $embedding = $this->embeddings->embedText($query);
+        } catch (\Throwable $e) {
+            Log::warning('MemoryRetriever: embedding failed, skipping memory context', [
+                'error' => $e->getMessage(),
+                'provider' => config('ai.default_for_embeddings'),
+            ]);
+
+            return collect();
+        }
 
         return Memory::query()
             ->where('user_id', $user->id)

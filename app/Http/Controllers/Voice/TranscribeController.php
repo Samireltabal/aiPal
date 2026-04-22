@@ -18,7 +18,9 @@ class TranscribeController extends Controller
         ]);
 
         $file = $request->file('audio');
-        $transcript = Transcription::fromUpload($file)->generate();
+
+        $model = config('ai.stt_model') ?: null;
+        $transcript = Transcription::fromUpload($file)->generate(model: $model);
 
         return response()->json(['transcript' => (string) $transcript]);
     }

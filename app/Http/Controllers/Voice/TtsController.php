@@ -23,7 +23,8 @@ class TtsController extends Controller
         $voice = $request->input('voice', $request->user()->persona?->tts_voice ?? 'alloy');
         $text = $request->input('text');
 
-        $audio = Audio::of($text)->voice($voice)->generate();
+        $model = config('ai.tts_model') ?: null;
+        $audio = Audio::of($text)->voice($voice)->generate(model: $model);
 
         return response($audio->content(), 200, [
             'Content-Type' => $audio->mimeType() ?? 'audio/mpeg',

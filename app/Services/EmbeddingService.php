@@ -7,16 +7,19 @@ namespace App\Services;
 use App\Models\Memory;
 use App\Models\User;
 use Laravel\Ai\Embeddings;
-use Laravel\Ai\Enums\Lab;
 
 class EmbeddingService
 {
     public function embedText(string $text): array
     {
+        $provider = config('ai.default_for_embeddings');
+        $model = config('ai.embedding_model') ?: null;
+        $dimensions = (int) config('ai.embedding_dimensions', 1536);
+
         $response = Embeddings::for([$text])
-            ->dimensions(1536)
+            ->dimensions($dimensions)
             ->cache()
-            ->generate(Lab::OpenAI, 'text-embedding-3-small');
+            ->generate($provider, $model);
 
         return $response->embeddings[0];
     }

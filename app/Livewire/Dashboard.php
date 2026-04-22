@@ -53,6 +53,10 @@ class Dashboard extends Component
 
     public string $personaName = 'aiPal';
 
+    public string $activeProvider = '';
+
+    public string $activeModel = '';
+
     public function mount(): void
     {
         /** @var User $user */
@@ -60,6 +64,9 @@ class Dashboard extends Component
 
         $this->personaName = $user->persona?->assistant_name ?? 'aiPal';
         $this->greeting = $this->buildGreeting($user->name);
+
+        $this->activeProvider = (string) config('ai.default', 'anthropic');
+        $this->activeModel = (string) config("ai.models.{$this->activeProvider}", '');
         $this->gmailConnected = $user->hasGoogleConnected();
         $this->calendarConnected = $user->hasGoogleConnected();
 
