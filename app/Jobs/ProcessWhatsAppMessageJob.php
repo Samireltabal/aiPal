@@ -47,6 +47,8 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
         $workflow = $matcher->match($user, 'whatsapp', $text);
 
         if ($workflow !== null) {
+            $whatsApp->send($this->phone, "Running workflow \"{$workflow->name}\"...");
+
             RunWorkflowJob::dispatch($workflow->id, 'message', [
                 'channel' => 'whatsapp',
                 'text' => $text,

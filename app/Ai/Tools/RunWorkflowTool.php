@@ -59,21 +59,27 @@ class RunWorkflowTool extends AiTool
             return 'Please specify a workflow name.';
         }
 
-        $workflow = Workflow::query()
+        $needle = strtolower($name);
+
+        $candidates = Workflow::query()
             ->where('user_id', $this->user->id)
             ->where('enabled', true)
-            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
-            ->first();
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.$needle.'%'])
+            ->get();
 
-        if (! $workflow) {
-            $workflow = Workflow::query()
-                ->where('user_id', $this->user->id)
-                ->where('enabled', true)
-                ->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($name).'%'])
-                ->first();
+        $workflow = $candidates->firstWhere(fn ($w) => strtolower($w->name) === $needle);
+
+        if (! $workflow && $candidates->count() === 1) {
+            $workflow = $candidates->first();
         }
 
         if (! $workflow) {
+            if ($candidates->count() > 1) {
+                $names = $candidates->pluck('name')->implode(', ');
+
+                return "Multiple workflows match \"{$name}\": {$names}. Please specify the exact name.";
+            }
+
             $available = Workflow::query()
                 ->where('user_id', $this->user->id)
                 ->where('enabled', true)

@@ -47,6 +47,8 @@ class ProcessTelegramMessageJob implements ShouldQueue
         $workflow = $matcher->match($user, 'telegram', $text);
 
         if ($workflow !== null) {
+            $telegram->send($this->chatId, "Running workflow \"{$workflow->name}\"...");
+
             RunWorkflowJob::dispatch($workflow->id, 'message', [
                 'channel' => 'telegram',
                 'text' => $text,
