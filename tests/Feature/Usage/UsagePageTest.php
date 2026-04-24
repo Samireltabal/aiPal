@@ -69,6 +69,22 @@ class UsagePageTest extends TestCase
             ->assertSet('scope', 'global');
     }
 
+    public function test_admin_sees_server_health_section(): void
+    {
+        $this->actingAs($this->userWithPersona(admin: true))
+            ->get(route('usage'))
+            ->assertOk()
+            ->assertSee('Server health');
+    }
+
+    public function test_non_admin_does_not_see_server_health_section(): void
+    {
+        $this->actingAs($this->userWithPersona(admin: false))
+            ->get(route('usage'))
+            ->assertOk()
+            ->assertDontSee('Server health');
+    }
+
     public function test_range_is_clamped_to_allowed_values(): void
     {
         Livewire::actingAs($this->userWithPersona())

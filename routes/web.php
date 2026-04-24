@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Google\GoogleAuthController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Inbound\InboundEmailController;
 use App\Http\Controllers\OfflineController;
 use App\Http\Controllers\Telegram\TelegramWebhookController;
 use App\Http\Controllers\Voice\TranscribeController;
@@ -14,6 +15,7 @@ use App\Livewire\Admin\Invitations;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Chat;
+use App\Livewire\Contexts;
 use App\Livewire\Dashboard;
 use App\Livewire\Documents;
 use App\Livewire\Memories;
@@ -34,6 +36,11 @@ Route::post('/webhooks/telegram', TelegramWebhookController::class)->name('webho
 // WhatsApp webhook — GET for verification challenge, POST for messages, no auth, CSRF excluded
 Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
 Route::post('/webhooks/whatsapp', WhatsAppWebhookController::class)->name('webhooks.whatsapp');
+
+// Inbound email webhook — HMAC-signed by Cloudflare Email Worker, CSRF excluded
+Route::post('/webhooks/email/inbound', InboundEmailController::class)
+    ->middleware('throttle:120,1')
+    ->name('webhooks.email.inbound');
 
 // Generic workflow webhook — token in URL is the auth, rate-limited
 Route::post('/webhooks/workflow/{token}', WorkflowWebhookController::class)
@@ -71,6 +78,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/voice/transcribe', TranscribeController::class)->name('voice.transcribe');
         Route::post('/voice/tts', TtsController::class)->name('voice.tts');
         Route::get('/settings', Settings::class)->name('settings');
+        Route::get('/settings/contexts', Contexts::class)->name('contexts');
         Route::get('/usage', Usage::class)->name('usage');
         Route::get('/memories', Memories::class)->name('memories');
         Route::get('/documents', Documents::class)->name('documents');

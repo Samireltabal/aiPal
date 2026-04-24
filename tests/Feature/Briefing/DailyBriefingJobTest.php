@@ -24,7 +24,7 @@ class DailyBriefingJobTest extends TestCase
         Notification::fake();
         DailyBriefingAgent::fake(['Here is your morning briefing.']);
 
-        $user = User::factory()->create([
+        $user = User::factory()->withDefaultContext()->create([
             'briefing_enabled' => true,
             'briefing_time' => '08:00',
             'briefing_timezone' => 'UTC',
@@ -58,7 +58,7 @@ class DailyBriefingJobTest extends TestCase
         Notification::fake();
         DailyBriefingAgent::fake(['Briefing with tasks.']);
 
-        $user = User::factory()->create([
+        $user = User::factory()->withDefaultContext()->create([
             'briefing_enabled' => true,
             'briefing_time' => '08:00',
             'briefing_timezone' => 'UTC',
@@ -84,7 +84,7 @@ class DailyBriefingJobTest extends TestCase
         Notification::fake();
         DailyBriefingAgent::fake(['Morning briefing.']);
 
-        $user = User::factory()->create([
+        $user = User::factory()->withDefaultContext()->create([
             'briefing_enabled' => true,
             'briefing_time' => '08:00',
             'briefing_timezone' => 'UTC',

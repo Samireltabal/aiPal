@@ -38,7 +38,7 @@ class BriefingSettingsTest extends TestCase
         $this->actingAs($user)
             ->get(route('settings'))
             ->assertOk()
-            ->assertSee('Daily Briefing')
+            ->assertSee('Morning Focus Cast')
             ->assertSee('Delivery time')
             ->assertSee('Google Calendar');
     }

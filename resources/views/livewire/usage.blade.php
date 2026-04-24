@@ -224,6 +224,114 @@
 
             </div>
 
+            {{-- Server Health (admin only) --}}
+            @if ($isAdmin && $serverMetrics !== null)
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Server health</h2>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Host, database, queue, and disk status for this deployment.
+                </p>
+
+                @php
+                    $rt = $serverMetrics['runtime'];
+                    $sys = $serverMetrics['system'];
+                    $disk = $serverMetrics['disk'];
+                    $db = $serverMetrics['database'];
+                    $queue = $serverMetrics['queue'];
+                    $cache = $serverMetrics['cache'];
+                    $load = $sys['load_average'];
+                    $uptimeDays = $sys['uptime_seconds'] !== null
+                        ? round($sys['uptime_seconds'] / 86400, 1)
+                        : null;
+                @endphp
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Runtime</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-1">PHP {{ $rt['php_version'] }}</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Laravel {{ $rt['laravel_version'] }} · {{ $rt['environment'] }}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Memory</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-1">{{ $rt['memory_usage_mb'] }} MB</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">peak {{ $rt['peak_memory_mb'] }} MB · limit {{ $rt['memory_limit'] }}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Load avg</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white mt-1">
+                            @if ($load) {{ $load['1m'] }} · {{ $load['5m'] }} · {{ $load['15m'] }} @else n/a @endif
+                        </p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                            @if ($uptimeDays !== null) uptime {{ $uptimeDays }}d @else {{ $sys['os'] }} @endif
+                        </p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Disk</p>
+                        @if ($disk['total_gb'] !== null)
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white mt-1">
+                                {{ $disk['free_gb'] }} / {{ $disk['total_gb'] }} GB free
+                            </p>
+                            <div class="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 mt-2 overflow-hidden">
+                                <div class="h-full {{ $disk['used_percent'] > 85 ? 'bg-rose-500' : ($disk['used_percent'] > 70 ? 'bg-amber-500' : 'bg-emerald-500') }}" style="width: {{ $disk['used_percent'] }}%"></div>
+                            </div>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{{ $disk['used_percent'] }}% used</p>
+                        @else
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">n/a</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Database · {{ $db['driver'] }}</h3>
+                        @if (count($db['row_counts']) === 0)
+                            <p class="text-xs text-gray-500 dark:text-gray-400">No tables found.</p>
+                        @else
+                        <div class="grid grid-cols-2 gap-2">
+                            @foreach ($db['row_counts'] as $table => $count)
+                                <div class="flex justify-between text-xs py-1">
+                                    <span class="font-mono text-gray-600 dark:text-gray-400 truncate">{{ $table }}</span>
+                                    <span class="text-gray-900 dark:text-white font-semibold">{{ number_format($count) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Queue &amp; cache</h3>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Queue driver</span>
+                                <span class="font-mono text-gray-700 dark:text-gray-300">{{ $queue['driver'] }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Pending jobs</span>
+                                <span class="font-semibold text-gray-900 dark:text-white">{{ $queue['pending'] !== null ? number_format($queue['pending']) : 'n/a' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Failed jobs</span>
+                                <span class="font-semibold {{ ($queue['failed'] ?? 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-white' }}">
+                                    {{ $queue['failed'] !== null ? number_format($queue['failed']) : 'n/a' }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between pt-1 border-t border-gray-100 dark:border-gray-700 mt-2">
+                                <span class="text-gray-500 dark:text-gray-400">Cache driver</span>
+                                <span class="font-mono text-gray-700 dark:text-gray-300">{{ $cache['driver'] }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500 dark:text-gray-400">Session driver</span>
+                                <span class="font-mono text-gray-700 dark:text-gray-300">{{ $cache['session_driver'] }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             {{-- AI Model Configuration --}}
             <div class="mt-8">
                 <div class="flex items-center gap-2 mb-2">

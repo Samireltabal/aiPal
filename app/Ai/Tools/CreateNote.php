@@ -65,6 +65,7 @@ class CreateNote extends AiTool
 
         $note = Note::create([
             'user_id' => $this->user->id,
+            'context_id' => $this->user->defaultContext()?->id,
             'title' => $title,
             'content' => $content,
             'embedding' => $embedding,

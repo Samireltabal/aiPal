@@ -1,0 +1,9 @@
+name = "aipal-inbound-email"
+main = "src/worker.js"
+compatibility_date = "2026-04-01"
+
+[vars]
+# Full URL of the aiPal endpoint that receives inbound-email webhooks.
+AIPAL_ENDPOINT = "https://samirai.xyz/webhooks/email/inbound"
+
+# HMAC_SECRET is NOT set here — add it via `wrangler secret put HMAC_SECRET`.

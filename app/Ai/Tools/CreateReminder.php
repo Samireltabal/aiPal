@@ -77,6 +77,7 @@ class CreateReminder extends AiTool
 
         $reminder = Reminder::create([
             'user_id' => $this->user->id,
+            'context_id' => $this->user->defaultContext()?->id,
             'title' => $parsed['title'],
             'body' => $body !== '' ? $body : null,
             'remind_at' => $remindAt,

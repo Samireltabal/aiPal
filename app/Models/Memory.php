@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Memory extends Model
 {
-    protected $fillable = ['user_id', 'content', 'embedding', 'source'];
+    protected $fillable = ['user_id', 'context_id', 'content', 'embedding', 'source'];
 
     protected function casts(): array
     {

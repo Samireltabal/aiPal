@@ -68,6 +68,10 @@ class Settings extends Component
 
     public bool $briefingSaved = false;
 
+    public bool $inboundEmailSaved = false;
+
+    public bool $inboundEmailCopied = false;
+
     public bool $pushTestSent = false;
 
     #[Validate('required|in:email,telegram,whatsapp,webhook')]
@@ -285,6 +289,39 @@ class Settings extends Component
         ]);
 
         $this->briefingSaved = true;
+    }
+
+    public function enableInboundEmail(): void
+    {
+        $user = Auth::user();
+
+        if ($user->hasInboundEmailEnabled()) {
+            return;
+        }
+
+        $user->update(['inbound_email_token' => $this->generateInboundToken()]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    public function regenerateInboundEmail(): void
+    {
+        Auth::user()->update(['inbound_email_token' => $this->generateInboundToken()]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    public function disableInboundEmail(): void
+    {
+        Auth::user()->update(['inbound_email_token' => null]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    private function generateInboundToken(): string
+    {
+        // 32 lowercase-alphanum chars = ~160 bits of entropy.
+        return bin2hex(random_bytes(16));
     }
 
     public function import(): void

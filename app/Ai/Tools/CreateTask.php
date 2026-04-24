@@ -66,6 +66,7 @@ class CreateTask extends AiTool
     {
         $task = Task::create([
             'user_id' => $this->user->id,
+            'context_id' => $this->user->defaultContext()?->id,
             'title' => $request['title'],
             'description' => $request['description'] ?? null,
             'priority' => $request['priority'] ?? 'medium',

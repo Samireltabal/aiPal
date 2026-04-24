@@ -190,15 +190,15 @@
                 </div>
             </div>
 
-            {{-- Daily Briefing --}}
+            {{-- Morning Focus Cast --}}
             <div class="mt-8">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Daily Briefing</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Get a morning email summarising your tasks, reminders, and calendar events.</p>
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Morning Focus Cast</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">A short daily push — the top 3 things to focus on today, based on your calendar, reminders, and tasks. Sent via Telegram if linked, otherwise email.</p>
 
                 @if ($briefingSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
                      x-data x-init="setTimeout(() => $el.remove(), 2500)">
-                    Briefing settings saved.
+                    Focus cast settings saved.
                 </div>
                 @endif
 
@@ -206,8 +206,8 @@
                     {{-- Enable toggle --}}
                     <div class="p-5 flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable daily briefing</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delivered by email at your chosen time each day.</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable morning focus cast</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delivered at your chosen local time each day.</p>
                         </div>
                         <button
                             wire:click="$toggle('briefingEnabled')"
@@ -289,6 +289,57 @@
                 </div>
             </div>
 
+            {{-- Forward-to-aiPal (inbound email) --}}
+            <div class="mt-8">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Forward-to-aiPal</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Forward any email to your personal aiPal address and it will be auto-classified into a task, reminder, note, or memory. You'll get a short confirmation back.
+                </p>
+
+                @if ($inboundEmailSaved)
+                <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
+                     x-data x-init="setTimeout(() => $el.remove(), 2500)">
+                    Forwarding settings updated.
+                </div>
+                @endif
+
+                @php($inboundAddress = auth()->user()->inboundEmailAddress())
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                    @if ($inboundAddress === null)
+                        <div class="p-5 flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Email forwarding is off</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Enable to generate a personal forwarding address.</p>
+                            </div>
+                            <button wire:click="enableInboundEmail" wire:loading.attr="disabled" wire:target="enableInboundEmail"
+                                class="px-4 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="enableInboundEmail">Enable forwarding</span>
+                                <span wire:loading wire:target="enableInboundEmail">Generating…</span>
+                            </button>
+                        </div>
+                    @else
+                        <div class="p-5">
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your forwarding address</p>
+                            <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                                {{ $inboundAddress }}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Forward any email to this address. Subject and body are classified; attachments are ignored in this version.</p>
+                        </div>
+                        <div class="p-5 flex items-center justify-end gap-2">
+                            <button wire:click="regenerateInboundEmail" wire:loading.attr="disabled" wire:target="regenerateInboundEmail"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
+                                Regenerate address
+                            </button>
+                            <button wire:click="disableInboundEmail" wire:loading.attr="disabled" wire:target="disableInboundEmail"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 disabled:opacity-50">
+                                Disable
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             {{-- Telegram --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Telegram</h2>
@@ -334,7 +385,7 @@
             {{-- WhatsApp --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">WhatsApp</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Link your WhatsApp number to chat with your assistant and receive reminders via WhatsApp.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Link your WhatsApp number to chat with your assistant and receive reminders via WhatsApp. Voice notes are transcribed via a third-party speech-to-text service before being processed; capped at {{ (int) config('services.whatsapp.voice_daily_limit', 30) }} voice messages per day.</p>
 
                 @if ($whatsappSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"

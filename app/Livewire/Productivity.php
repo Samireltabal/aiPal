@@ -78,6 +78,7 @@ class Productivity extends Component
 
         Note::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $title,
             'content' => $content,
             'embedding' => $embedding,
@@ -102,6 +103,7 @@ class Productivity extends Component
 
         Reminder::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $this->reminderTitle,
             'body' => trim($this->reminderBody) !== '' ? $this->reminderBody : null,
             'remind_at' => $this->reminderAt,
@@ -130,6 +132,7 @@ class Productivity extends Component
 
         Task::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $this->taskTitle,
             'description' => trim($this->taskDescription) !== '' ? $this->taskDescription : null,
             'priority' => $this->taskPriority,

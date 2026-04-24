@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Services\ServerMetrics;
 use App\Services\UsageAnalytics;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -38,7 +39,7 @@ class Usage extends Component
         $this->scope = $scope === 'global' ? 'global' : 'me';
     }
 
-    public function render(UsageAnalytics $analytics): View
+    public function render(UsageAnalytics $analytics, ServerMetrics $server): View
     {
         $user = Auth::user();
         $isAdmin = (bool) $user?->isAdmin();
@@ -54,6 +55,7 @@ class Usage extends Component
             'isAdmin' => $isAdmin,
             'effectiveScope' => $effectiveScope,
             'ranges' => self::RANGES,
+            'serverMetrics' => $isAdmin ? $server->snapshot() : null,
         ]);
     }
 

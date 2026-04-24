@@ -11,6 +11,7 @@ use App\Services\WhatsAppService;
 use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Ai\Transcription;
 
 class ProcessWhatsAppMessageJob implements ShouldQueue
@@ -106,6 +107,10 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             return null;
         }
 
+        if (! $this->allowVoiceNote($whatsApp)) {
+            return null;
+        }
+
         $tmpPath = $whatsApp->downloadAudio($this->audioMediaId);
 
         if ($tmpPath === null) {
@@ -117,5 +122,33 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
         } finally {
             @unlink($tmpPath);
         }
+    }
+
+    /**
+     * Enforce a per-user rolling 24h voice-note cap. Prevents one user from
+     * draining the STT budget. Sends a text notice to the user when tripped.
+     */
+    private function allowVoiceNote(WhatsAppService $whatsApp): bool
+    {
+        $limit = (int) config('services.whatsapp.voice_daily_limit', 30);
+
+        if ($limit === 0) {
+            $whatsApp->send($this->phone, 'Voice notes are disabled on this aiPal instance. Please send text instead.');
+
+            return false;
+        }
+
+        $key = "whatsapp:voice-daily:{$this->userId}";
+        $count = (int) Cache::get($key, 0);
+
+        if ($count >= $limit) {
+            $whatsApp->send($this->phone, "You've hit today's voice-note limit ({$limit}). Please send text, or try again tomorrow.");
+
+            return false;
+        }
+
+        Cache::put($key, $count + 1, now()->addDay());
+
+        return true;
     }
 }

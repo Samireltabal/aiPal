@@ -45,6 +45,10 @@ return [
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
         'app_secret' => env('WHATSAPP_APP_SECRET'),
+
+        // Per-user voice-note rate limit. Caps STT cost if a user spams audio.
+        // Counted over a rolling 24h window. Set to 0 to disable voice input.
+        'voice_daily_limit' => (int) env('WHATSAPP_VOICE_DAILY_LIMIT', 30),
     ],
 
     'google' => [
