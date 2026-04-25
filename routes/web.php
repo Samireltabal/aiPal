@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Google\GoogleAuthController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Inbound\InboundEmailController;
+use App\Http\Controllers\Microsoft\MicrosoftAuthController;
 use App\Http\Controllers\OfflineController;
 use App\Http\Controllers\Telegram\TelegramWebhookController;
 use App\Http\Controllers\Voice\TranscribeController;
@@ -66,6 +67,10 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/google/auth', [GoogleAuthController::class, 'redirect'])->name('google.auth');
     Route::get('/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
     Route::delete('/google/disconnect', [GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
+
+    Route::get('/microsoft/auth', [MicrosoftAuthController::class, 'redirect'])->name('microsoft.auth');
+    Route::get('/microsoft/callback', [MicrosoftAuthController::class, 'callback'])->name('microsoft.callback');
+    Route::delete('/microsoft/disconnect', [MicrosoftAuthController::class, 'disconnect'])->name('microsoft.disconnect');
 
     // Location auto-save endpoint — session-auth, browser fetch with CSRF.
     // Kept outside the `persona` middleware so it works on onboarding and during setup.

@@ -347,6 +347,7 @@ class Settings extends Component
             Connection::PROVIDER_GITLAB,
             Connection::PROVIDER_JIRA,
             Connection::PROVIDER_GOOGLE,
+            Connection::PROVIDER_MICROSOFT,
         ])->find($connectionId);
 
         if ($connection === null) {
@@ -523,6 +524,7 @@ class Settings extends Component
                 Connection::PROVIDER_GITLAB,
                 Connection::PROVIDER_JIRA,
                 Connection::PROVIDER_GOOGLE,
+                Connection::PROVIDER_MICROSOFT,
             ])
             ->orderByDesc('is_default')
             ->orderBy('label')
@@ -538,6 +540,7 @@ class Settings extends Component
             'githubConnections' => $integrationConnections->get(Connection::PROVIDER_GITHUB, collect()),
             'jiraConnections' => $integrationConnections->get(Connection::PROVIDER_JIRA, collect()),
             'googleConnections' => $integrationConnections->get(Connection::PROVIDER_GOOGLE, collect()),
+            'microsoftConnections' => $integrationConnections->get(Connection::PROVIDER_MICROSOFT, collect()),
         ]);
     }
 

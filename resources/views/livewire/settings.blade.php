@@ -273,6 +273,43 @@
                         @endif
                     </div>
 
+                    {{-- Microsoft accounts (multi-account) --}}
+                    <div class="p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Microsoft accounts</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Outlook + Microsoft Calendar. Add both personal and work accounts; the active context picks which one tools use.</p>
+                            </div>
+                            <a href="{{ route('microsoft.auth') }}"
+                                class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 23 23" fill="none"><rect x="1" y="1" width="10" height="10" fill="#F25022"/><rect x="12" y="1" width="10" height="10" fill="#7FBA00"/><rect x="1" y="12" width="10" height="10" fill="#00A4EF"/><rect x="12" y="12" width="10" height="10" fill="#FFB900"/></svg>
+                                {{ $microsoftConnections->isEmpty() ? 'Connect Microsoft' : 'Add another' }}
+                            </a>
+                        </div>
+
+                        @if ($microsoftConnections->isNotEmpty())
+                        <ul class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-lg">
+                            @foreach ($microsoftConnections as $conn)
+                                <li class="flex items-center justify-between gap-3 px-3 py-2" wire:key="microsoft-{{ $conn->id }}">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                            {{ $conn->label }}
+                                            @if ($conn->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-400">default</span>@endif
+                                        </p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ str_starts_with((string) $conn->identifier, 'primary-') ? 'Reconnect to populate email' : $conn->identifier }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        @if (! $conn->is_default)
+                                        <button wire:click="setDefaultIntegrationConnection({{ $conn->id }})" class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make default</button>
+                                        @endif
+                                        <button wire:click="removeIntegrationConnection({{ $conn->id }})" wire:confirm="Remove this Microsoft account?" class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @endif
+                    </div>
+
                     {{-- Default reminder channel --}}
                     <div class="p-5 space-y-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Default Reminder Channel</label>

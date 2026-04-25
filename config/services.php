@@ -57,6 +57,21 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/google/callback'),
     ],
 
+    'microsoft' => [
+        'client_id' => env('MS_GRAPH_CLIENT_ID'),
+        'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
+        'redirect' => env('MS_GRAPH_REDIRECT_URI', env('APP_URL', 'http://localhost').'/microsoft/callback'),
+        'tenant' => env('MS_GRAPH_TENANT', 'common'),
+        'scopes' => [
+            'offline_access',
+            'openid',
+            'email',
+            'profile',
+            'Mail.Read',
+            'Calendars.ReadWrite',
+        ],
+    ],
+
     'vapid' => [
         'public_key' => env('VAPID_PUBLIC_KEY'),
         'private_key' => env('VAPID_PRIVATE_KEY'),
