@@ -28,6 +28,14 @@ class Contexts extends Component
 
     public ?string $errorMessage = null;
 
+    /**
+     * Per-context input field for adding sender-domain rules.
+     * Keyed by context id; bound via wire:model in the blade.
+     *
+     * @var array<int, string>
+     */
+    public array $newDomainsByContext = [];
+
     public function render(): View
     {
         $user = Auth::user();
@@ -103,6 +111,60 @@ class Contexts extends Component
         $context = $user->contexts()->findOrFail($contextId);
 
         $connection->update(['context_id' => $context->id]);
+    }
+
+    public function addInferenceRule(int $contextId): void
+    {
+        $domain = trim((string) ($this->newDomainsByContext[$contextId] ?? ''));
+        if ($domain === '') {
+            return;
+        }
+
+        $domain = ltrim(strtolower($domain), '@');
+        if (! preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/i', $domain)) {
+            $this->errorMessage = 'Domain must look like "example.com" or "@example.com".';
+
+            return;
+        }
+
+        $user = Auth::user();
+        $context = $user->contexts()->findOrFail($contextId);
+
+        $rules = is_array($context->inference_rules) ? $context->inference_rules : [];
+
+        // De-dupe — same domain, same context, same type is a no-op.
+        foreach ($rules as $rule) {
+            if (($rule['type'] ?? null) === 'sender_domain'
+                && strtolower((string) ($rule['value'] ?? '')) === $domain) {
+                $this->newDomainsByContext[$contextId] = '';
+
+                return;
+            }
+        }
+
+        $rules[] = [
+            'type' => 'sender_domain',
+            'value' => $domain,
+            'priority' => 50,
+        ];
+
+        $context->update(['inference_rules' => $rules]);
+        $this->newDomainsByContext[$contextId] = '';
+        $this->errorMessage = null;
+    }
+
+    public function removeInferenceRule(int $contextId, int $index): void
+    {
+        $user = Auth::user();
+        $context = $user->contexts()->findOrFail($contextId);
+
+        $rules = is_array($context->inference_rules) ? $context->inference_rules : [];
+        if (! isset($rules[$index])) {
+            return;
+        }
+
+        array_splice($rules, $index, 1);
+        $context->update(['inference_rules' => $rules ?: null]);
     }
 
     public function deleteContext(int $contextId): void

@@ -114,6 +114,39 @@
                             @endforeach
                         </div>
                     @endif
+
+                    {{-- Inference rules: auto-route inbound emails by sender domain --}}
+                    @php($rules = is_array($ctx->inference_rules) ? $ctx->inference_rules : [])
+                    <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Inbound email routing</p>
+                        @if (count($rules) > 0)
+                            <div class="space-y-1 mb-2">
+                                @foreach ($rules as $idx => $rule)
+                                    @if (($rule['type'] ?? null) === 'sender_domain')
+                                        <div class="flex items-center justify-between text-xs py-1" wire:key="rule-{{ $ctx->id }}-{{ $idx }}">
+                                            <span class="font-mono text-gray-700 dark:text-gray-300">@{{ $rule['value'] }}</span>
+                                            <button wire:click="removeInferenceRule({{ $ctx->id }}, {{ $idx }})"
+                                                class="text-[11px] px-1.5 py-0.5 rounded text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">No rules. Add a sender domain to auto-route inbound emails to this context.</p>
+                        @endif
+
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="text"
+                                wire:model="newDomainsByContext.{{ $ctx->id }}"
+                                wire:keydown.enter.prevent="addInferenceRule({{ $ctx->id }})"
+                                placeholder="example.com"
+                                class="flex-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
+                            <button wire:click="addInferenceRule({{ $ctx->id }})"
+                                class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Add rule</button>
+                        </div>
+                    </div>
                 </div>
                 @empty
                 <p class="text-sm text-gray-500 dark:text-gray-400">No contexts yet. Add one above.</p>
