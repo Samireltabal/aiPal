@@ -1,12 +1,27 @@
 # Microsoft Graph Integration Plan
 
-**Status:** draft for review
+**Status:** Phase 1 ✅ shipped 2026-04-25 (PRs #13 + #14 + #15). Phase 2 open.
 **Author:** assistant + Samir
 **Date:** 2026-04-25
 
 The user works primarily on Microsoft 365 (work account). Adding Microsoft
-Graph as a first-class provider is the largest unlock left after the multi-
-account refactor. This doc proposes the shape *before* any code is written.
+Graph as a first-class provider was the largest unlock after the multi-
+account refactor.
+
+## Shipped
+
+- **Phase 1a (PR #13)** — OAuth + Connection storage + Settings UI. v2.0 `/common` endpoint, multi-account, identifier from id_token claim.
+- **Phase 1b (PR #13)** — `OutlookTool` (list/read/search mail), `MicrosoftConnectionAuth` token-refresh helper, `MicrosoftGraphMailService`.
+- **Phase 1c (PR #13)** — `OutlookCalendarTool` (list + create events) with the 3-record per-turn guardrail wired in.
+- **Multi-account fix (PR #14)** — id_token-first identification (no extra Graph call), don't-demote-existing-default behavior.
+- **Phase 2 partial (PR #15)** — Token-refresh background job (`connections:refresh-tokens`, every 5 min) for both Microsoft and Google.
+
+## Open
+
+- Webhook subscriptions (push instead of poll).
+- `Mail.Send` capability (decision §9.3 deferred this).
+- Calendar event update / delete actions.
+- Teams / SharePoint / OneDrive — separate doc when needed.
 
 ---
 
@@ -146,16 +161,15 @@ Coverage target: same 80%+ rule as the rest of the codebase.
 
 ## 8. Phasing
 
-| Phase | Scope                                                | Est.   |
-| ----- | ---------------------------------------------------- | ------ |
-| 1a    | OAuth + Connection storage + Settings UI             | 1 day  |
-| 1b    | OutlookTool (read mail) + tests                      | 1 day  |
-| 1c    | OutlookCalendarTool (read events) + tests            | 1 day  |
-| 1d    | OutlookCreateEventTool + guardrail wiring + tests    | 1 day  |
-| 2     | Token-refresh background job (shared with Google)    | 1 day  |
-
-Phase 1 = ~4 days for a usable work-mail/calendar integration.
-Total to "feature complete v1" = ~5 days.
+| Phase | Scope                                                | Est.   | Status                |
+| ----- | ---------------------------------------------------- | ------ | --------------------- |
+| 1a    | OAuth + Connection storage + Settings UI             | 1 day  | ✅ shipped (PR #13)   |
+| 1b    | OutlookTool (read mail) + tests                      | 1 day  | ✅ shipped (PR #13)   |
+| 1c    | OutlookCalendarTool (read + create) + guardrail      | 1 day  | ✅ shipped (PR #13)   |
+| 2     | Token-refresh background job (shared with Google)    | 1 day  | ✅ shipped (PR #15)   |
+| 3     | Webhook subscriptions (push instead of poll)         | 2 days | ⬜ open               |
+| —     | `Mail.Send` capability                                | 0.5 d  | ⬜ deferred (§9.3)    |
+| —     | Calendar event update / delete actions               | 0.5 d  | ⬜ open               |
 
 ## 9. Decisions (resolved 2026-04-25)
 

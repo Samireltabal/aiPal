@@ -1,27 +1,18 @@
 # Sprint Plan — Contexts + Connections + Context-Scoped Forward-to-aiPal
 
 **Sprint estimate:** ~9 days (revised after advisor review)
-**Status 2026-04-24:** Days 1–8 shipped in one session. **Day 5 (stop settings-UI dual-writes) + Day 9 (scalar-column drop) bundled as a follow-up.** Suite: 268 tests (+34 in this sprint), all green on 512MB memory. Scalar columns still populated via backfill + preserved for rollback safety.
+**Status 2026-04-25:** Sprint **complete** ✅. All days shipped. Microsoft Graph integration (Phase 1a/1b/1c) also shipped on top. Suite: 323 passed, 1 skipped.
 
-## Pick-up checklist (next session)
+## Shipped log
 
-Entry point for resuming this work:
+- **2026-04-24** — Days 1–8 shipped in one session: contexts + connections schema, backfill migration, models, factories, basic UI, forward-to-aiPal context routing. Suite: 268 tests, all green.
+- **2026-04-25 (PR #14)** — Day 9 partial: legacy GitHub/GitLab/Jira scalar columns dropped from `users` (`github_token`, `gitlab_host`, `gitlab_token`, `jira_host`, `jira_email`, `jira_token`). Settings UI write paths already targeted `connections` from earlier work.
+- **2026-04-25 (PR #15)** — Inference-rules UI shipped on the contexts page (add/remove sender-domain rules per context).
 
-1. **User verifies in dev:**
-   - Run `php artisan migrate` (applies 4 new migrations including backfill)
-   - Visit `/settings/contexts` — Personal default context should appear
-   - Create "Acme Corp" (work) + "Project Phoenix" (freelance) via UI
-   - Move a connection between contexts; confirm badge color updates
-   - Enable inbound email in Settings → Forward-to-aiPal, then forward a test email
-2. **Day 5/9 work remaining:**
-   - [ ] Inference-rules UI (currently editable only via tinker) — a small list editor on each context card
-   - [ ] Rewrite settings UI write paths to target `connections` instead of scalar columns on `users`
-   - [ ] Rewrite `User::hasTelegramLinked()` / `hasWhatsAppLinked()` / `hasInboundEmailEnabled()` / `hasJiraConnected()` / `hasGitLabConnected()` / `hasGitHubConnected()` to read from connections
-   - [ ] Grep sweep for any remaining scalar-column reads (`telegram_chat_id`, `whatsapp_phone`, `inbound_email_token`, `jira_*`, `gitlab_*`, `github_token`)
-   - [ ] Drop-columns migration: `users.telegram_chat_id`, `telegram_conversation_id`, `whatsapp_phone`, `whatsapp_conversation_id`, `jira_host/email/token`, `gitlab_host/token`, `github_token`, `inbound_email_token`
-   - [ ] Remove scalar fields from `User::$fillable` attribute
-   - [ ] Test-update sweep (~20 tests)
-3. **Then decide:** Microsoft Graph (phase 3) vs other roadmap priorities.
+## Intentionally deferred
+
+- **Channel scalars on `users`** stay as-is: `telegram_chat_id`, `telegram_conversation_id`, `whatsapp_phone`, `whatsapp_conversation_id`, `inbound_email_token`. They're 1:1 per user and webhook lookups resolve via them. Moving them to `connections` is a separate refactor with its own risk profile, not part of this sprint.
+- **Inference rule types beyond `sender_domain`** — schema supports more (`recipient_address`, `subject_keyword`) but UI ships only `sender_domain` for v1.
 **Decision locked 2026-04-24:** combined morning cast with context labels (per-context casts deferred to a later sprint)
 **Scope:** Phase 1 (Contexts + Connections refactor) + Phase 4 (Forward-to-aiPal context routing)
 **Out of scope this sprint:** Microsoft Graph integration, per-context morning casts, Teams, multi-account UI polish beyond the basics
