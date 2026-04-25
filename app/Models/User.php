@@ -387,6 +387,11 @@ class User extends Authenticatable
         return $this->hasConnectionFor(Connection::PROVIDER_GITHUB);
     }
 
+    public function hasMicrosoftConnected(): bool
+    {
+        return $this->hasConnectionFor(Connection::PROVIDER_MICROSOFT);
+    }
+
     public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);
