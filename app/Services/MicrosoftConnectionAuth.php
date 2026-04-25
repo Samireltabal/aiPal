@@ -49,6 +49,32 @@ class MicrosoftConnectionAuth
     }
 
     /**
+     * Refresh credentials on the given connection. Returns true when a new
+     * access token was obtained and persisted, false when the refresh token
+     * was rejected (in which case the connection is disabled so tools show
+     * 'not connected' rather than breaking).
+     */
+    public function refreshConnection(Connection $connection): bool
+    {
+        $this->ensureMicrosoftProvider($connection);
+
+        $refreshToken = $connection->credential('refresh_token');
+        if ($refreshToken === null) {
+            return false;
+        }
+
+        $token = $this->refresh($connection, $refreshToken);
+
+        if ($token === null) {
+            $connection->update(['enabled' => false]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Return the new access token after refresh, or null if refresh failed.
      */
     private function refresh(Connection $connection, string $refreshToken): ?string

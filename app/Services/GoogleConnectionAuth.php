@@ -48,6 +48,44 @@ class GoogleConnectionAuth
         return $user->pickConnection(Connection::PROVIDER_GOOGLE);
     }
 
+    /**
+     * Refresh credentials on the given connection. Returns true when a new
+     * access token was obtained and persisted, false when the refresh token
+     * was rejected (in which case the connection is disabled so tools show
+     * 'not connected' rather than breaking).
+     */
+    public function refreshConnection(Connection $connection): bool
+    {
+        $this->ensureGoogleProvider($connection);
+
+        $refreshToken = $connection->credential('refresh_token');
+        if ($refreshToken === null) {
+            return false;
+        }
+
+        $client = $this->clientFactory->make();
+        $client->setAccessToken($this->toGoogleArray($connection));
+
+        $new = $client->fetchAccessTokenWithRefreshToken($refreshToken);
+
+        if (! isset($new['access_token'])) {
+            $connection->update(['enabled' => false]);
+
+            return false;
+        }
+
+        $expiresAt = isset($new['expires_in'])
+            ? Carbon::now()->addSeconds((int) $new['expires_in'])->toIso8601String()
+            : null;
+
+        $connection->mergeCredentials([
+            'access_token' => $new['access_token'],
+            'expires_at' => $expiresAt,
+        ]);
+
+        return true;
+    }
+
     public function hasScope(Connection $connection, string $scope): bool
     {
         $scopes = (string) ($connection->credential('scopes') ?? '');
