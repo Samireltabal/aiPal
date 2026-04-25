@@ -68,9 +68,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
     Route::delete('/google/disconnect', [GoogleAuthController::class, 'disconnect'])->name('google.disconnect');
 
-    Route::get('/microsoft/auth', [MicrosoftAuthController::class, 'redirect'])->name('microsoft.auth');
-    Route::get('/microsoft/callback', [MicrosoftAuthController::class, 'callback'])->name('microsoft.callback');
-    Route::delete('/microsoft/disconnect', [MicrosoftAuthController::class, 'disconnect'])->name('microsoft.disconnect');
+    Route::get('/auth/microsoft', [MicrosoftAuthController::class, 'redirect'])->name('microsoft.auth');
+    Route::get('/auth/microsoft/callback', [MicrosoftAuthController::class, 'callback'])->name('microsoft.callback');
+    Route::delete('/auth/microsoft', [MicrosoftAuthController::class, 'disconnect'])->name('microsoft.disconnect');
 
     // Location auto-save endpoint — session-auth, browser fetch with CSRF.
     // Kept outside the `persona` middleware so it works on onboarding and during setup.

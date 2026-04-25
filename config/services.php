@@ -60,7 +60,7 @@ return [
     'microsoft' => [
         'client_id' => env('MS_GRAPH_CLIENT_ID'),
         'client_secret' => env('MS_GRAPH_CLIENT_SECRET'),
-        'redirect' => env('MS_GRAPH_REDIRECT_URI', env('APP_URL', 'http://localhost').'/microsoft/callback'),
+        'redirect' => env('MS_GRAPH_REDIRECT_URI', env('APP_URL', 'http://localhost').'/auth/microsoft/callback'),
         'tenant' => env('MS_GRAPH_TENANT', 'common'),
         'scopes' => [
             'offline_access',
