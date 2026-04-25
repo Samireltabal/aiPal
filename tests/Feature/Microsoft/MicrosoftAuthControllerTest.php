@@ -80,6 +80,65 @@ class MicrosoftAuthControllerTest extends TestCase
         $this->assertSame('M.refresh', $connection->credential('refresh_token'));
     }
 
+    public function test_callback_uses_id_token_email_when_graph_me_is_empty(): void
+    {
+        $idToken = $this->makeIdToken(['email' => 'second@personal.com']);
+
+        Http::fake([
+            'login.microsoftonline.com/*' => Http::response([
+                'access_token' => 'eyJtest2',
+                'refresh_token' => 'M.refresh2',
+                'expires_in' => 3600,
+                'id_token' => $idToken,
+                'scope' => 'Mail.Read offline_access',
+                'token_type' => 'Bearer',
+            ]),
+            'graph.microsoft.com/v1.0/me' => Http::response([], 403),
+        ]);
+
+        $user = User::factory()->withDefaultContext()->create();
+
+        // Pre-existing default Microsoft connection (a different account).
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()->id,
+            'provider' => Connection::PROVIDER_MICROSOFT,
+            'capabilities' => [Connection::CAPABILITY_MAIL],
+            'label' => 'first@work.com',
+            'identifier' => 'first@work.com',
+            'credentials' => ['access_token' => 'first', 'refresh_token' => 'fr', 'scopes' => ''],
+            'is_default' => true,
+            'enabled' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['microsoft_oauth_state' => 's'])
+            ->get(route('microsoft.callback', ['code' => 'c', 'state' => 's']))
+            ->assertRedirect(route('settings'));
+
+        $this->assertDatabaseHas('connections', [
+            'user_id' => $user->id,
+            'provider' => Connection::PROVIDER_MICROSOFT,
+            'identifier' => 'second@personal.com',
+        ]);
+
+        // Existing default not demoted.
+        $first = $user->connections()->where('identifier', 'first@work.com')->firstOrFail();
+        $this->assertTrue((bool) $first->is_default);
+
+        $second = $user->connections()->where('identifier', 'second@personal.com')->firstOrFail();
+        $this->assertFalse((bool) $second->is_default);
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function makeIdToken(array $claims): string
+    {
+        $segment = static fn (array $payload): string => rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=');
+
+        return $segment(['alg' => 'RS256', 'typ' => 'JWT']).'.'.$segment($claims).'.signature';
+    }
+
     public function test_callback_rejects_missing_code(): void
     {
         $user = User::factory()->create();

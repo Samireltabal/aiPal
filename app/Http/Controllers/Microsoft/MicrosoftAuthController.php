@@ -47,10 +47,24 @@ class MicrosoftAuthController
             ? Carbon::now()->addSeconds((int) $token['expires_in'])
             : null;
 
-        $profile = $this->oauth->fetchProfile($token['access_token']);
-        $email = $profile['mail']
-            ?? $profile['userPrincipalName']
-            ?? null;
+        // Prefer id_token claims (no extra API call, works for personal +
+        // work accounts without needing User.Read). Fall back to Graph /me.
+        $email = null;
+        if (! empty($token['id_token'])) {
+            $claims = $this->oauth->decodeIdToken($token['id_token']);
+            $email = $claims['email']
+                ?? $claims['preferred_username']
+                ?? $claims['upn']
+                ?? $claims['unique_name']
+                ?? null;
+        }
+
+        if ($email === null) {
+            $profile = $this->oauth->fetchProfile($token['access_token']);
+            $email = $profile['mail']
+                ?? $profile['userPrincipalName']
+                ?? null;
+        }
 
         $user = $request->user();
         $identifier = $email ?: 'primary-'.$user->id;
@@ -59,8 +73,8 @@ class MicrosoftAuthController
         Log::info('Microsoft OAuth callback', [
             'user_id' => $user->id,
             'identifier' => $identifier,
-            'profile_email' => $email,
-            'profile_keys' => array_keys($profile),
+            'email_resolved' => $email,
+            'has_id_token' => ! empty($token['id_token']),
         ]);
 
         $connection = $user->connections()
@@ -96,16 +110,20 @@ class MicrosoftAuthController
             ]);
         }
 
-        // Promote the just-linked account to default if there is no default
-        // yet. Same pattern as Google.
-        $user->connections()
+        // If no Microsoft connection is currently default, promote this one.
+        // Don't demote an existing default — the user can pick a default
+        // explicitly in Settings.
+        $hasDefault = $user->connections()
             ->where('provider', Connection::PROVIDER_MICROSOFT)
-            ->where('identifier', $identifier)
-            ->update(['is_default' => true]);
-        $user->connections()
-            ->where('provider', Connection::PROVIDER_MICROSOFT)
-            ->where('identifier', '!=', $identifier)
-            ->update(['is_default' => false]);
+            ->where('is_default', true)
+            ->exists();
+
+        if (! $hasDefault) {
+            $user->connections()
+                ->where('provider', Connection::PROVIDER_MICROSOFT)
+                ->where('identifier', $identifier)
+                ->update(['is_default' => true]);
+        }
 
         $verb = $alreadyConnected ? 'refreshed' : 'connected';
 
