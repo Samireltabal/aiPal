@@ -131,6 +131,20 @@ class Productivity extends Component
         Reminder::query()->where('id', $id)->where('user_id', Auth::id())->delete();
     }
 
+    /**
+     * Wipe every pending (not-yet-sent) reminder for the user. Useful when
+     * the assistant has just bulk-created a batch the user didn't want.
+     */
+    public function deleteAllPendingReminders(): void
+    {
+        $count = Reminder::query()
+            ->where('user_id', Auth::id())
+            ->whereNull('sent_at')
+            ->delete();
+
+        $this->successMessage = "Deleted {$count} pending reminder".($count === 1 ? '' : 's').'.';
+    }
+
     // — Tasks actions —
 
     public function saveTask(): void

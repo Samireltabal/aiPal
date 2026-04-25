@@ -189,6 +189,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Per-turn counter so write-heavy tools (CreateReminder, CreateTask) can
+     * guardrail against runaway loops where the LLM creates many records in
+     * one user turn without confirmation. Reset implicitly when the User
+     * object goes out of scope at end of request/job.
+     */
+    private int $createdRecordsThisTurn = 0;
+
+    public function incrementCreatedRecordsThisTurn(): int
+    {
+        return ++$this->createdRecordsThisTurn;
+    }
+
+    public function createdRecordsThisTurn(): int
+    {
+        return $this->createdRecordsThisTurn;
+    }
+
+    /**
      * Run $fn with $context as the active override, restoring whatever was
      * active before. Used by integration tools when the LLM passes an explicit
      * `context` argument to scope a single call without changing conversation

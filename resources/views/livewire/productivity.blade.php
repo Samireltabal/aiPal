@@ -157,7 +157,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end mb-2">
+                <div class="flex items-center justify-between mb-2">
+                    <button wire:click="deleteAllPendingReminders" wire:confirm="Delete every pending reminder? This wipes the whole list of upcoming ones."
+                        class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">
+                        Clear all pending
+                    </button>
                     <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                         <input wire:model.live="showSentReminders" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         Show past (sent) reminders

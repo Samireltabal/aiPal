@@ -38,7 +38,8 @@ class CreateTask extends AiTool
 
     public function description(): Stringable|string
     {
-        return 'Create a task for the user. Use when the user says "add a task", "I need to do...", "create a to-do", or similar.';
+        return 'Create ONE task for the user. Use when the user says "add a task", "I need to do...", "create a to-do", or similar. '
+            .'IMPORTANT: For requests that imply many tasks (e.g. "create a task for each item"), list them and ask the user to confirm before bulk-creating.';
     }
 
     public function schema(JsonSchema $schema): array
@@ -62,8 +63,15 @@ class CreateTask extends AiTool
         ];
     }
 
+    private const MAX_RECORDS_PER_TURN = 3;
+
     protected function execute(Request $request): Stringable|string
     {
+        if ($this->user->createdRecordsThisTurn() >= self::MAX_RECORDS_PER_TURN) {
+            return 'GUARDRAIL: You have already created '.$this->user->createdRecordsThisTurn().' records in this turn. '
+                .'Stop and ask the user to confirm before creating more.';
+        }
+
         $task = Task::create([
             'user_id' => $this->user->id,
             'context_id' => $this->user->currentContext()?->id,
@@ -72,6 +80,8 @@ class CreateTask extends AiTool
             'priority' => $request['priority'] ?? 'medium',
             'due_date' => isset($request['due_date']) ? now()->parse($request['due_date'])->toDateString() : null,
         ]);
+
+        $this->user->incrementCreatedRecordsThisTurn();
 
         $due = $task->due_date ? " Due: {$task->due_date->toFormattedDateString()}." : '';
 

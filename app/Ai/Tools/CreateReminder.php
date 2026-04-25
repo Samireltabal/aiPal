@@ -39,7 +39,9 @@ class CreateReminder extends AiTool
 
     public function description(): Stringable|string
     {
-        return 'Create a reminder for the user. Use when the user says "remind me to...", "set a reminder for...", or similar. Accepts natural language time expressions like "tomorrow at 9am" or "in 2 hours".';
+        return 'Create ONE reminder for the user. Use when the user says "remind me to...", "set a reminder for...", or similar. Accepts natural language time expressions like "tomorrow at 9am" or "in 2 hours". '
+            ."IMPORTANT: If the user's request would produce multiple reminders (e.g. \"remind me 5 minutes before each meeting\" with several meetings), DO NOT call this tool multiple times silently. "
+            .'Instead, list what you would create and ASK the user to confirm before proceeding. Bulk creation without confirmation is a usability bug.';
     }
 
     public function schema(JsonSchema $schema): array
@@ -51,8 +53,22 @@ class CreateReminder extends AiTool
         ];
     }
 
+    /**
+     * Hard cap on reminders/tasks/notes a single user turn can create before
+     * the LLM is forced to stop and confirm. Defends against the failure mode
+     * where the model loops "remind me 5 min before each meeting" into 7+
+     * silent inserts.
+     */
+    private const MAX_RECORDS_PER_TURN = 3;
+
     protected function execute(Request $request): Stringable|string
     {
+        if ($this->user->createdRecordsThisTurn() >= self::MAX_RECORDS_PER_TURN) {
+            return 'GUARDRAIL: You have already created '.$this->user->createdRecordsThisTurn().' records in this turn. '
+                .'Stop creating more and ask the user to confirm before continuing. '
+                .'Summarize what you would create and wait for explicit approval.';
+        }
+
         $naturalLanguage = $request['natural_language'];
 
         $defaultChannel = $this->user->default_reminder_channel ?? 'email';
@@ -84,6 +100,12 @@ class CreateReminder extends AiTool
             'channel' => $parsed['channel'],
         ]);
 
-        return "Reminder set: \"{$reminder->title}\" — I'll notify you on {$remindAt->toDayDateTimeString()} via {$reminder->channel}. (ID: {$reminder->id})";
+        $count = $this->user->incrementCreatedRecordsThisTurn();
+        $remaining = max(0, self::MAX_RECORDS_PER_TURN - $count);
+        $hint = $remaining === 0
+            ? ' (You have hit the per-turn limit; confirm with the user before any further creates.)'
+            : '';
+
+        return "Reminder set: \"{$reminder->title}\" — I'll notify you on {$remindAt->toDayDateTimeString()} via {$reminder->channel}. (ID: {$reminder->id})".$hint;
     }
 }
