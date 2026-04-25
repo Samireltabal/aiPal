@@ -190,15 +190,15 @@
                 </div>
             </div>
 
-            {{-- Daily Briefing --}}
+            {{-- Morning Focus Cast --}}
             <div class="mt-8">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Daily Briefing</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Get a morning email summarising your tasks, reminders, and calendar events.</p>
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Morning Focus Cast</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">A short daily push — the top 3 things to focus on today, based on your calendar, reminders, and tasks. Sent via Telegram if linked, otherwise email.</p>
 
                 @if ($briefingSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
                      x-data x-init="setTimeout(() => $el.remove(), 2500)">
-                    Briefing settings saved.
+                    Focus cast settings saved.
                 </div>
                 @endif
 
@@ -206,8 +206,8 @@
                     {{-- Enable toggle --}}
                     <div class="p-5 flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable daily briefing</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delivered by email at your chosen time each day.</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable morning focus cast</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delivered at your chosen local time each day.</p>
                         </div>
                         <button
                             wire:click="$toggle('briefingEnabled')"
@@ -236,31 +236,40 @@
                         </div>
                     </div>
 
-                    {{-- Google Calendar connection --}}
-                    <div class="p-5 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Google Calendar</p>
-                            @if ($googleConnected)
-                                <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">Connected — calendar events will appear in your briefing.</p>
-                            @else
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Connect to include today's events in your briefing.</p>
-                            @endif
-                        </div>
-                        @if ($googleConnected)
-                            <form method="POST" action="{{ route('google.disconnect') }}">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                    class="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
-                                    Disconnect
-                                </button>
-                            </form>
-                        @else
+                    {{-- Google accounts (multi-account) --}}
+                    <div class="p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Google accounts</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Mail + Calendar. Add as many as you need; the active context picks which account tools use.</p>
+                            </div>
                             <a href="{{ route('google.auth') }}"
                                 class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                                Connect Google
+                                {{ $googleConnections->isEmpty() ? 'Connect Google' : 'Add another' }}
                             </a>
+                        </div>
+
+                        @if ($googleConnections->isNotEmpty())
+                        <ul class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-100 dark:border-gray-700 rounded-lg">
+                            @foreach ($googleConnections as $conn)
+                                <li class="flex items-center justify-between gap-3 px-3 py-2" wire:key="google-{{ $conn->id }}">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                            {{ $conn->label }}
+                                            @if ($conn->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-400">default</span>@endif
+                                        </p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ str_starts_with((string) $conn->identifier, 'primary-') ? 'Reconnect to populate email' : $conn->identifier }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        @if (! $conn->is_default)
+                                        <button wire:click="setDefaultIntegrationConnection({{ $conn->id }})" class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make default</button>
+                                        @endif
+                                        <button wire:click="removeIntegrationConnection({{ $conn->id }})" wire:confirm="Remove this Google account?" class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
                         @endif
                     </div>
 
@@ -286,6 +295,57 @@
                             <span wire:loading wire:target="saveBriefingSettings">Saving…</span>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {{-- Forward-to-aiPal (inbound email) --}}
+            <div class="mt-8">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Forward-to-aiPal</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Forward any email to your personal aiPal address and it will be auto-classified into a task, reminder, note, or memory. You'll get a short confirmation back.
+                </p>
+
+                @if ($inboundEmailSaved)
+                <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
+                     x-data x-init="setTimeout(() => $el.remove(), 2500)">
+                    Forwarding settings updated.
+                </div>
+                @endif
+
+                @php($inboundAddress = auth()->user()->inboundEmailAddress())
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                    @if ($inboundAddress === null)
+                        <div class="p-5 flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Email forwarding is off</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Enable to generate a personal forwarding address.</p>
+                            </div>
+                            <button wire:click="enableInboundEmail" wire:loading.attr="disabled" wire:target="enableInboundEmail"
+                                class="px-4 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="enableInboundEmail">Enable forwarding</span>
+                                <span wire:loading wire:target="enableInboundEmail">Generating…</span>
+                            </button>
+                        </div>
+                    @else
+                        <div class="p-5">
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your forwarding address</p>
+                            <div class="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                                {{ $inboundAddress }}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Forward any email to this address. Subject and body are classified; attachments are ignored in this version.</p>
+                        </div>
+                        <div class="p-5 flex items-center justify-end gap-2">
+                            <button wire:click="regenerateInboundEmail" wire:loading.attr="disabled" wire:target="regenerateInboundEmail"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
+                                Regenerate address
+                            </button>
+                            <button wire:click="disableInboundEmail" wire:loading.attr="disabled" wire:target="disableInboundEmail"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 disabled:opacity-50">
+                                Disable
+                            </button>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -334,7 +394,7 @@
             {{-- WhatsApp --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">WhatsApp</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Link your WhatsApp number to chat with your assistant and receive reminders via WhatsApp.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Link your WhatsApp number to chat with your assistant and receive reminders via WhatsApp. Voice notes are transcribed via a third-party speech-to-text service before being processed; capped at {{ (int) config('services.whatsapp.voice_daily_limit', 30) }} voice messages per day.</p>
 
                 @if ($whatsappSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
@@ -373,133 +433,186 @@
                 </div>
             </div>
 
-            {{-- GitLab --}}
+            {{-- GitLab (multi-account) --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">GitLab</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect your GitLab account to list MRs, view commits, and create issues.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect one or more GitLab accounts. The active context picks which account tools use.</p>
 
                 @if ($gitlabSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
                      x-data x-init="setTimeout(() => $el.remove(), 2500)">
-                    GitLab settings saved.
+                    GitLab account added.
                 </div>
                 @endif
 
                 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
-                    <div class="p-5 space-y-4">
-                        @if (auth()->user()->hasGitLabConnected())
-                        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Connected — {{ auth()->user()->gitlab_host }}
-                        </div>
-                        @endif
+                    @if ($gitlabConnections->isNotEmpty())
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach ($gitlabConnections as $conn)
+                            <li class="flex items-center justify-between gap-3 px-5 py-3" wire:key="gitlab-{{ $conn->id }}">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                        {{ $conn->label }}
+                                        @if ($conn->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-400">default</span>@endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $conn->credential('host') ?: $conn->identifier }}</p>
+                                </div>
+                                <div class="flex-shrink-0 flex items-center gap-2">
+                                    @if (! $conn->is_default)
+                                    <button wire:click="setDefaultIntegrationConnection({{ $conn->id }})" class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make default</button>
+                                    @endif
+                                    <button wire:click="removeIntegrationConnection({{ $conn->id }})" wire:confirm="Remove this GitLab account?" class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                    @endif
 
+                    <div class="p-5 space-y-4">
+                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Add a GitLab account</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label (optional)</label>
+                            <input wire:model="gitlabLabel" type="text" placeholder="Work, Personal, …"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                        </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">GitLab Host URL</label>
                             <input wire:model="gitlabHost" type="url" placeholder="https://gitlab.com"
                                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
                             @error('gitlabHost') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Use <code>https://gitlab.com</code> or your self-hosted URL.</p>
                         </div>
-
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Personal Access Token</label>
                             <input wire:model="gitlabToken" type="password" placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
                                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
                             @error('gitlabToken') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Generate at GitLab → User Settings → Access Tokens. Required scopes: <code>api</code>, <code>read_repository</code>.</p>
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Required scopes: <code>api</code>, <code>read_repository</code>.</p>
                         </div>
                     </div>
 
                     <div class="p-5 flex justify-end">
-                        <button wire:click="saveGitLabSettings" wire:loading.attr="disabled" wire:target="saveGitLabSettings"
+                        <button wire:click="addGitLabAccount" wire:loading.attr="disabled" wire:target="addGitLabAccount"
                             class="px-5 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                            <span wire:loading.remove wire:target="saveGitLabSettings">Save GitLab settings</span>
-                            <span wire:loading wire:target="saveGitLabSettings">Saving…</span>
+                            <span wire:loading.remove wire:target="addGitLabAccount">Add GitLab account</span>
+                            <span wire:loading wire:target="addGitLabAccount">Adding…</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {{-- GitHub --}}
+            {{-- GitHub (multi-account) --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">GitHub</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect your GitHub account to list PRs, view commits, and create issues.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect one or more GitHub accounts. The active context picks which account tools use.</p>
 
                 @if ($githubSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
                      x-data x-init="setTimeout(() => $el.remove(), 2500)">
-                    GitHub settings saved.
+                    GitHub account added.
                 </div>
                 @endif
 
                 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
-                    <div class="p-5 space-y-4">
-                        @if (auth()->user()->hasGitHubConnected())
-                        <p class="text-xs text-green-600 dark:text-green-400 font-medium">
-                            Connected — GitHub token saved.
-                        </p>
-                        @endif
+                    @if ($githubConnections->isNotEmpty())
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach ($githubConnections as $conn)
+                            <li class="flex items-center justify-between gap-3 px-5 py-3" wire:key="github-{{ $conn->id }}">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                        {{ $conn->label }}
+                                        @if ($conn->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-400">default</span>@endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">github.com</p>
+                                </div>
+                                <div class="flex-shrink-0 flex items-center gap-2">
+                                    @if (! $conn->is_default)
+                                    <button wire:click="setDefaultIntegrationConnection({{ $conn->id }})" class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make default</button>
+                                    @endif
+                                    <button wire:click="removeIntegrationConnection({{ $conn->id }})" wire:confirm="Remove this GitHub account?" class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                    @endif
 
+                    <div class="p-5 space-y-4">
+                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Add a GitHub account</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label (optional)</label>
+                            <input wire:model="githubLabel" type="text" placeholder="Work, Personal, …"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                        </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Personal Access Token</label>
                             <input wire:model="githubToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                                 class="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             @error('githubToken') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                                Generate at GitHub → Settings → Developer settings → Personal access tokens.
-                                Required scopes: <code>repo</code>, <code>read:user</code>.
-                            </p>
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Required scopes: <code>repo</code>, <code>read:user</code>.</p>
                         </div>
 
-                        <button wire:click="saveGitHubSettings" wire:loading.attr="disabled" wire:target="saveGitHubSettings"
+                        <button wire:click="addGitHubAccount" wire:loading.attr="disabled" wire:target="addGitHubAccount"
                             class="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                            <span wire:loading.remove wire:target="saveGitHubSettings">Save GitHub settings</span>
-                            <span wire:loading wire:target="saveGitHubSettings">Saving…</span>
+                            <span wire:loading.remove wire:target="addGitHubAccount">Add GitHub account</span>
+                            <span wire:loading wire:target="addGitHubAccount">Adding…</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {{-- Jira --}}
+            {{-- Jira (multi-account) --}}
             <div class="mt-8">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Jira</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect your Jira account so the assistant can search issues, create tickets, and update statuses.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Connect one or more Jira accounts. The active context picks which account tools use.</p>
 
                 @if ($jiraSaved)
                 <div class="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-400"
                      x-data x-init="setTimeout(() => $el.remove(), 2500)">
-                    Jira settings saved.
+                    Jira account added.
                 </div>
                 @endif
 
                 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
-                    <div class="p-5 space-y-4">
-                        @if (auth()->user()->hasJiraConnected())
-                        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Connected — {{ auth()->user()->jira_host }}
-                        </div>
-                        @endif
+                    @if ($jiraConnections->isNotEmpty())
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @foreach ($jiraConnections as $conn)
+                            <li class="flex items-center justify-between gap-3 px-5 py-3" wire:key="jira-{{ $conn->id }}">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                        {{ $conn->label }}
+                                        @if ($conn->is_default)<span class="ml-2 text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-400">default</span>@endif
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $conn->credential('host') ?: $conn->identifier }}</p>
+                                </div>
+                                <div class="flex-shrink-0 flex items-center gap-2">
+                                    @if (! $conn->is_default)
+                                    <button wire:click="setDefaultIntegrationConnection({{ $conn->id }})" class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make default</button>
+                                    @endif
+                                    <button wire:click="removeIntegrationConnection({{ $conn->id }})" wire:confirm="Remove this Jira account?" class="text-[11px] px-2 py-1 rounded border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30">Remove</button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                    @endif
 
+                    <div class="p-5 space-y-4">
+                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Add a Jira account</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label (optional)</label>
+                            <input wire:model="jiraLabel" type="text" placeholder="Work, Side project, …"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                        </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Jira Host URL</label>
                             <input wire:model="jiraHost" type="url" placeholder="https://yourcompany.atlassian.net"
                                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
                             @error('jiraHost') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Jira Email</label>
                             <input wire:model="jiraEmail" type="email" placeholder="you@company.com"
                                 class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
                             @error('jiraEmail') <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">API Token</label>
                             <input wire:model="jiraToken" type="password" placeholder="Atlassian API token"
@@ -510,10 +623,10 @@
                     </div>
 
                     <div class="p-5 flex justify-end">
-                        <button wire:click="saveJiraSettings" wire:loading.attr="disabled" wire:target="saveJiraSettings"
+                        <button wire:click="addJiraAccount" wire:loading.attr="disabled" wire:target="addJiraAccount"
                             class="px-5 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                            <span wire:loading.remove wire:target="saveJiraSettings">Save Jira settings</span>
-                            <span wire:loading wire:target="saveJiraSettings">Saving…</span>
+                            <span wire:loading.remove wire:target="addJiraAccount">Add Jira account</span>
+                            <span wire:loading wire:target="addJiraAccount">Adding…</span>
                         </button>
                     </div>
                 </div>
@@ -603,60 +716,21 @@
                 </div>
             </div>
 
-            {{-- AI Model Configuration --}}
+            {{-- Link to Usage & Models page --}}
             <div class="mt-8">
-                <div class="flex items-center gap-2 mb-4">
-                    <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">AI Model Configuration</h2>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Configure providers and models via your <code class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700 font-mono text-xs">.env</code> file, then rebuild the container. Values shown reflect the current active configuration.</p>
-
-                <div class="space-y-3">
-                    @foreach ($aiConfig as $fn)
-                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                        <div class="flex items-start justify-between gap-4 mb-3">
+                <a href="{{ route('usage') }}"
+                   class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                             <div>
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $fn['name'] }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $fn['description'] }}</p>
-                            </div>
-                            <div class="flex-shrink-0 text-right">
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
-                                    {{ $fn['provider'] }}
-                                </span>
-                                @if ($fn['model'] !== '—')
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">{{ $fn['model'] }}</p>
-                                @endif
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Usage &amp; Models</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Token consumption, cost estimates, and active model configuration.</p>
                             </div>
                         </div>
-
-                        <div class="flex flex-wrap gap-x-6 gap-y-2">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Env variables</p>
-                                <div class="flex flex-wrap gap-1">
-                                    @foreach ($fn['env_vars'] as $var)
-                                    <code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300">{{ $var }}</code>
-                                    @endforeach
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Compatible providers</p>
-                                <div class="flex flex-wrap gap-1">
-                                    @foreach ($fn['compatible'] as $provider)
-                                    <span class="px-1.5 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{ $provider }}</span>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-
-                        @if (!empty($fn['note']))
-                        <p class="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                            {{ $fn['note'] }}
-                        </p>
-                        @endif
+                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </div>
-                    @endforeach
-                </div>
+                </a>
             </div>
 
         </div>

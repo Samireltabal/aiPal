@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -15,13 +16,33 @@ class GitHubService
 
     private string $token;
 
-    public function __construct(User $user)
+    public function __construct(Connection $connection)
     {
-        if (! $user->hasGitHubConnected()) {
-            throw new RuntimeException('GitHub is not configured. Please add your GitHub token in Settings.');
+        if ($connection->provider !== Connection::PROVIDER_GITHUB) {
+            throw new RuntimeException("Connection {$connection->id} is not a GitHub connection.");
         }
 
-        $this->token = (string) $user->github_token;
+        $token = $connection->credential('token');
+
+        if ($token === null || $token === '') {
+            throw new RuntimeException('GitHub token is missing. Please re-add this account in Settings.');
+        }
+
+        $this->token = $token;
+    }
+
+    /**
+     * Convenience for code paths that still resolve a service from a user.
+     */
+    public static function forUser(User $user): self
+    {
+        $connection = $user->pickConnection(Connection::PROVIDER_GITHUB);
+
+        if ($connection === null) {
+            throw new RuntimeException('GitHub is not configured. Please add a GitHub account in Settings.');
+        }
+
+        return new self($connection);
     }
 
     /** List pull requests for a repo or all assigned to the user. */

@@ -57,12 +57,19 @@ class Productivity extends Component
 
     public bool $showCompleted = false;
 
+    public bool $showSentReminders = false;
+
     public string $successMessage = '';
 
     public function updatingTab(): void
     {
         $this->resetPage();
         $this->successMessage = '';
+    }
+
+    public function updatingShowSentReminders(): void
+    {
+        $this->resetPage(pageName: 'remindersPage');
     }
 
     // — Notes actions —
@@ -78,6 +85,7 @@ class Productivity extends Component
 
         Note::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $title,
             'content' => $content,
             'embedding' => $embedding,
@@ -102,6 +110,7 @@ class Productivity extends Component
 
         Reminder::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $this->reminderTitle,
             'body' => trim($this->reminderBody) !== '' ? $this->reminderBody : null,
             'remind_at' => $this->reminderAt,
@@ -122,6 +131,20 @@ class Productivity extends Component
         Reminder::query()->where('id', $id)->where('user_id', Auth::id())->delete();
     }
 
+    /**
+     * Wipe every pending (not-yet-sent) reminder for the user. Useful when
+     * the assistant has just bulk-created a batch the user didn't want.
+     */
+    public function deleteAllPendingReminders(): void
+    {
+        $count = Reminder::query()
+            ->where('user_id', Auth::id())
+            ->whereNull('sent_at')
+            ->delete();
+
+        $this->successMessage = "Deleted {$count} pending reminder".($count === 1 ? '' : 's').'.';
+    }
+
     // — Tasks actions —
 
     public function saveTask(): void
@@ -130,6 +153,7 @@ class Productivity extends Component
 
         Task::create([
             'user_id' => Auth::id(),
+            'context_id' => Auth::user()->defaultContext()?->id,
             'title' => $this->taskTitle,
             'description' => trim($this->taskDescription) !== '' ? $this->taskDescription : null,
             'priority' => $this->taskPriority,
@@ -177,7 +201,17 @@ class Productivity extends Component
             });
         }
 
-        $remindersQuery = $user->reminders()->orderBy('remind_at');
+        // Pending (not yet sent) reminders first, ordered by next-to-fire.
+        // Sent reminders fall to the bottom (most recently sent first) and are
+        // hidden entirely unless the user toggles them on.
+        $remindersQuery = $user->reminders();
+        if (! $this->showSentReminders) {
+            $remindersQuery->whereNull('sent_at');
+        }
+        $remindersQuery
+            ->orderByRaw('sent_at IS NULL DESC')
+            ->orderBy('remind_at')
+            ->orderByDesc('sent_at');
 
         $tasksQuery = $user->tasks();
         if (! $this->showCompleted) {

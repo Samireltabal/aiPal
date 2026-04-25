@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -15,14 +16,36 @@ class GitLabService
 
     private string $token;
 
-    public function __construct(User $user)
+    public function __construct(Connection $connection)
     {
-        if (! $user->hasGitLabConnected()) {
-            throw new RuntimeException('GitLab is not configured. Please add your GitLab token in Settings.');
+        if ($connection->provider !== Connection::PROVIDER_GITLAB) {
+            throw new RuntimeException("Connection {$connection->id} is not a GitLab connection.");
         }
 
-        $this->baseUrl = rtrim((string) $user->gitlab_host, '/').'/api/v4';
-        $this->token = (string) $user->gitlab_token;
+        $host = $connection->credential('host') ?: 'https://gitlab.com';
+        $token = $connection->credential('token');
+
+        if ($token === null || $token === '') {
+            throw new RuntimeException('GitLab token is missing. Please re-add this account in Settings.');
+        }
+
+        $this->baseUrl = rtrim($host, '/').'/api/v4';
+        $this->token = $token;
+    }
+
+    /**
+     * Convenience for code paths that still resolve a service from a user
+     * (active context picks the connection). Throws when the user has none.
+     */
+    public static function forUser(User $user): self
+    {
+        $connection = $user->pickConnection(Connection::PROVIDER_GITLAB);
+
+        if ($connection === null) {
+            throw new RuntimeException('GitLab is not configured. Please add a GitLab account in Settings.');
+        }
+
+        return new self($connection);
     }
 
     /** List merge requests across all projects or a specific one. */

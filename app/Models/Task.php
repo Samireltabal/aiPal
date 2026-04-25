@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Task extends Model
 {
-    protected $fillable = ['user_id', 'title', 'description', 'priority', 'due_date', 'completed_at'];
+    protected $fillable = ['user_id', 'context_id', 'title', 'description', 'priority', 'due_date', 'completed_at'];
 
     protected function casts(): array
     {

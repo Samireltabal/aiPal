@@ -56,8 +56,15 @@ class CreateNote extends AiTool
         ];
     }
 
+    private const MAX_RECORDS_PER_TURN = 3;
+
     protected function execute(Request $request): Stringable|string
     {
+        if ($this->user->createdRecordsThisTurn() >= self::MAX_RECORDS_PER_TURN) {
+            return 'GUARDRAIL: You have already created '.$this->user->createdRecordsThisTurn().' records in this turn. '
+                .'Stop and ask the user to confirm before creating more.';
+        }
+
         $title = $request['title'] ?? null;
         $content = $request['content'];
 
@@ -65,10 +72,13 @@ class CreateNote extends AiTool
 
         $note = Note::create([
             'user_id' => $this->user->id,
+            'context_id' => $this->user->currentContext()?->id,
             'title' => $title,
             'content' => $content,
             'embedding' => $embedding,
         ]);
+
+        $this->user->incrementCreatedRecordsThisTurn();
 
         return 'Note saved'.(($title !== null && $title !== '') ? " as \"{$title}\"" : '').". (ID: {$note->id})";
     }

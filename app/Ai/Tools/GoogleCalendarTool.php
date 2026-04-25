@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\GoogleCalendarService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class GoogleCalendarTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
         private readonly GoogleCalendarService $calendarService,
@@ -51,6 +54,7 @@ class GoogleCalendarTool extends AiTool
                 ->enum(['today', 'tomorrow', 'this_week', 'next_7_days'])
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -68,7 +72,10 @@ class GoogleCalendarTool extends AiTool
             default => [Carbon::today(), Carbon::today()->endOfDay()],
         };
 
-        $events = $this->calendarService->listEvents($this->user, $from, $to);
+        $events = $this->withRequestedContext(
+            $request,
+            fn () => $this->calendarService->listEvents($this->user, $from, $to)
+        );
 
         if (empty($events)) {
             return "No events found for {$range}.";

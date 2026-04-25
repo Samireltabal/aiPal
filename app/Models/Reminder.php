@@ -12,7 +12,7 @@ class Reminder extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'title', 'body', 'remind_at', 'channel', 'webhook_url', 'sent_at'];
+    protected $fillable = ['user_id', 'context_id', 'title', 'body', 'remind_at', 'channel', 'webhook_url', 'sent_at'];
 
     protected function casts(): array
     {

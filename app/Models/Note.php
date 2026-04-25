@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Note extends Model
 {
-    protected $fillable = ['user_id', 'title', 'content', 'embedding'];
+    protected $fillable = ['user_id', 'context_id', 'title', 'content', 'embedding'];
 
     protected function casts(): array
     {

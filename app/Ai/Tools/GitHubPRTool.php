@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class GitHubPRTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
     ) {}
@@ -60,6 +63,7 @@ class GitHubPRTool extends AiTool
                 ->max(20)
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -69,8 +73,13 @@ class GitHubPRTool extends AiTool
             return 'GitHub is not connected. Please add your GitHub token in Settings.';
         }
 
+        return $this->withRequestedContext($request, fn (): Stringable|string => $this->doExecute($request));
+    }
+
+    private function doExecute(Request $request): Stringable|string
+    {
         try {
-            $github = new GitHubService($this->user);
+            $github = GitHubService::forUser($this->user);
             $prs = $github->listPullRequests(
                 repo: $request['repo'] ?? null,
                 state: $request['state'] ?? 'open',

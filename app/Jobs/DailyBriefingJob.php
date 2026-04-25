@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Ai\Agents\Briefing\DailyBriefingAgent;
+use App\Models\Connection;
+use App\Models\Context;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
@@ -13,6 +15,7 @@ use App\Services\GoogleCalendarService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class DailyBriefingJob implements ShouldQueue
 {
@@ -34,16 +37,34 @@ class DailyBriefingJob implements ShouldQueue
         $userNow = Carbon::now($user->briefing_timezone);
         $date = $userNow->toFormattedDateString();
 
-        $tasksContext = $this->buildTasksContext($user);
-        $remindersContext = $this->buildRemindersContext($user, $userNow);
-        $calendarContext = $this->buildCalendarContext($user, $calendarService);
+        $contexts = $user->contexts()
+            ->whereNull('archived_at')
+            ->orderBy('is_default', 'desc')
+            ->orderBy('kind')
+            ->get();
+
+        // Fallback: user with no contexts yet (pre-backfill edge case) — skip
+        // briefing for this run; migration will backfill on next schedule.
+        if ($contexts->isEmpty()) {
+            return;
+        }
+
+        $perContext = $contexts->map(fn (Context $ctx) => [
+            'context' => [
+                'id' => $ctx->id,
+                'kind' => $ctx->kind,
+                'name' => $ctx->name,
+                'is_default' => (bool) $ctx->is_default,
+            ],
+            'tasks' => $this->buildTasksContext($user, $ctx),
+            'reminders' => $this->buildRemindersContext($user, $ctx, $userNow),
+            'calendar' => $this->buildCalendarContext($user, $ctx, $calendarService),
+        ])->all();
 
         $agent = new DailyBriefingAgent(
             userName: $user->name,
             date: $date,
-            tasksContext: $tasksContext,
-            remindersContext: $remindersContext,
-            calendarContext: $calendarContext,
+            perContext: $perContext,
         );
 
         try {
@@ -66,10 +87,11 @@ class DailyBriefingJob implements ShouldQueue
         $user->update(['briefing_last_sent_at' => now()]);
     }
 
-    private function buildTasksContext(User $user): string
+    private function buildTasksContext(User $user, Context $context): string
     {
         $tasks = Task::query()
             ->where('user_id', $user->id)
+            ->where('context_id', $context->id)
             ->whereNull('completed_at')
             ->orderBy('priority', 'desc')
             ->orderBy('due_date')
@@ -85,10 +107,11 @@ class DailyBriefingJob implements ShouldQueue
         )->join("\n");
     }
 
-    private function buildRemindersContext(User $user, Carbon $userNow): string
+    private function buildRemindersContext(User $user, Context $context, Carbon $userNow): string
     {
         $reminders = Reminder::query()
             ->where('user_id', $user->id)
+            ->where('context_id', $context->id)
             ->whereNull('sent_at')
             ->whereDate('remind_at', $userNow->toDateString())
             ->orderBy('remind_at')
@@ -104,8 +127,20 @@ class DailyBriefingJob implements ShouldQueue
         )->join("\n");
     }
 
-    private function buildCalendarContext(User $user, GoogleCalendarService $calendarService): string
+    private function buildCalendarContext(User $user, Context $context, GoogleCalendarService $calendarService): string
     {
+        // Only fetch calendar if this context has a calendar-capable connection.
+        $hasCalendar = $context->connections()
+            ->where('enabled', true)
+            ->whereJsonContains('capabilities', Connection::CAPABILITY_CALENDAR)
+            ->exists();
+
+        if (! $hasCalendar) {
+            return 'No calendar connected to this context.';
+        }
+
+        // Today: only Google is wired as a calendar provider. Microsoft joins
+        // here (phase 3) by dispatching on connection provider.
         if (! $user->hasGoogleConnected()) {
             return 'Google Calendar not connected.';
         }

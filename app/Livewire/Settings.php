@@ -6,6 +6,7 @@ namespace App\Livewire;
 
 use App\Ai\Services\ToolRegistry;
 use App\Jobs\GenerateAvatarJob;
+use App\Models\Connection;
 use App\Models\UserToolSetting;
 use App\Services\PersonaGenerator;
 use App\Services\WebPushService;
@@ -68,6 +69,10 @@ class Settings extends Component
 
     public bool $briefingSaved = false;
 
+    public bool $inboundEmailSaved = false;
+
+    public bool $inboundEmailCopied = false;
+
     public bool $pushTestSent = false;
 
     #[Validate('required|in:email,telegram,whatsapp,webhook')]
@@ -83,6 +88,10 @@ class Settings extends Component
 
     public bool $whatsappSaved = false;
 
+    // — Jira "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $jiraLabel = null;
+
     #[Validate('nullable|url|max:255')]
     public ?string $jiraHost = null;
 
@@ -94,6 +103,10 @@ class Settings extends Component
 
     public bool $jiraSaved = false;
 
+    // — GitLab "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $gitlabLabel = null;
+
     #[Validate('nullable|url|max:255')]
     public ?string $gitlabHost = null;
 
@@ -101,6 +114,10 @@ class Settings extends Component
     public ?string $gitlabToken = null;
 
     public bool $gitlabSaved = false;
+
+    // — GitHub "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $githubLabel = null;
 
     #[Validate('nullable|string|max:255')]
     public ?string $githubToken = null;
@@ -129,12 +146,7 @@ class Settings extends Component
 
         $this->telegramChatId = $user->telegram_chat_id;
         $this->whatsappPhone = $user->whatsapp_phone;
-        $this->jiraHost = $user->jira_host;
-        $this->jiraEmail = $user->jira_email;
-        $this->jiraToken = $user->jira_token;
-        $this->gitlabHost = $user->gitlab_host ?? 'https://gitlab.com';
-        $this->gitlabToken = $user->gitlab_token;
-        $this->githubToken = $user->github_token;
+        $this->gitlabHost = 'https://gitlab.com';
     }
 
     public function regenerate(): void
@@ -219,31 +231,69 @@ class Settings extends Component
         $this->whatsappSaved = true;
     }
 
-    public function saveGitLabSettings(): void
+    public function addGitLabAccount(): void
     {
         $this->validateOnly('gitlabHost');
         $this->validateOnly('gitlabToken');
 
-        Auth::user()->update([
-            'gitlab_host' => $this->gitlabHost ?: 'https://gitlab.com',
-            'gitlab_token' => $this->gitlabToken ?: null,
+        $token = trim((string) $this->gitlabToken);
+        if ($token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $host = $this->gitlabHost ?: 'https://gitlab.com';
+        $label = $this->gitlabLabel ?: parse_url($host, PHP_URL_HOST) ?: 'GitLab';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_GITLAB,
+            'capabilities' => [Connection::CAPABILITY_CODE],
+            'label' => $label,
+            'identifier' => $host,
+            'credentials' => ['host' => $host, 'token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasGitLabConnected(),
         ]);
 
+        $this->gitlabLabel = null;
+        $this->gitlabHost = 'https://gitlab.com';
+        $this->gitlabToken = null;
         $this->gitlabSaved = true;
     }
 
-    public function saveJiraSettings(): void
+    public function addJiraAccount(): void
     {
         $this->validateOnly('jiraHost');
         $this->validateOnly('jiraEmail');
         $this->validateOnly('jiraToken');
 
-        Auth::user()->update([
-            'jira_host' => $this->jiraHost ?: null,
-            'jira_email' => $this->jiraEmail ?: null,
-            'jira_token' => $this->jiraToken ?: null,
+        $host = trim((string) $this->jiraHost);
+        $email = trim((string) $this->jiraEmail);
+        $token = trim((string) $this->jiraToken);
+
+        if ($host === '' || $email === '' || $token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $label = $this->jiraLabel ?: parse_url($host, PHP_URL_HOST) ?: 'Jira';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_JIRA,
+            'capabilities' => [Connection::CAPABILITY_ISSUES],
+            'label' => $label,
+            'identifier' => $email.'@'.$host,
+            'credentials' => ['host' => $host, 'email' => $email, 'token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasJiraConnected(),
         ]);
 
+        $this->jiraLabel = null;
+        $this->jiraHost = null;
+        $this->jiraEmail = null;
+        $this->jiraToken = null;
         $this->jiraSaved = true;
     }
 
@@ -260,15 +310,79 @@ class Settings extends Component
         $this->pushTestSent = true;
     }
 
-    public function saveGitHubSettings(): void
+    public function addGitHubAccount(): void
     {
         $this->validateOnly('githubToken');
 
-        Auth::user()->update([
-            'github_token' => $this->githubToken ?: null,
+        $token = trim((string) $this->githubToken);
+        if ($token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $label = $this->githubLabel ?: 'GitHub';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_GITHUB,
+            'capabilities' => [Connection::CAPABILITY_CODE],
+            'label' => $label,
+            'identifier' => 'github.com',
+            'credentials' => ['token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasGitHubConnected(),
         ]);
 
+        $this->githubLabel = null;
+        $this->githubToken = null;
         $this->githubSaved = true;
+    }
+
+    public function removeIntegrationConnection(int $connectionId): void
+    {
+        $user = Auth::user();
+
+        $connection = $user->connections()->whereIn('provider', [
+            Connection::PROVIDER_GITHUB,
+            Connection::PROVIDER_GITLAB,
+            Connection::PROVIDER_JIRA,
+            Connection::PROVIDER_GOOGLE,
+        ])->find($connectionId);
+
+        if ($connection === null) {
+            return;
+        }
+
+        $wasDefault = $connection->is_default;
+        $provider = $connection->provider;
+        $connection->delete();
+
+        // If we removed the default, promote another connection of the same
+        // provider to default so tools keep working without the user having
+        // to flip a flag manually.
+        if ($wasDefault) {
+            $next = $user->connections()
+                ->where('provider', $provider)
+                ->where('enabled', true)
+                ->first();
+            $next?->update(['is_default' => true]);
+        }
+    }
+
+    public function setDefaultIntegrationConnection(int $connectionId): void
+    {
+        $user = Auth::user();
+
+        $connection = $user->connections()->find($connectionId);
+        if ($connection === null) {
+            return;
+        }
+
+        $user->connections()
+            ->where('provider', $connection->provider)
+            ->update(['is_default' => false]);
+
+        $connection->update(['is_default' => true]);
     }
 
     public function saveBriefingSettings(): void
@@ -285,6 +399,39 @@ class Settings extends Component
         ]);
 
         $this->briefingSaved = true;
+    }
+
+    public function enableInboundEmail(): void
+    {
+        $user = Auth::user();
+
+        if ($user->hasInboundEmailEnabled()) {
+            return;
+        }
+
+        $user->update(['inbound_email_token' => $this->generateInboundToken()]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    public function regenerateInboundEmail(): void
+    {
+        Auth::user()->update(['inbound_email_token' => $this->generateInboundToken()]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    public function disableInboundEmail(): void
+    {
+        Auth::user()->update(['inbound_email_token' => null]);
+
+        $this->inboundEmailSaved = true;
+    }
+
+    private function generateInboundToken(): string
+    {
+        // 32 lowercase-alphanum chars = ~160 bits of entropy.
+        return bin2hex(random_bytes(16));
     }
 
     public function import(): void
@@ -370,88 +517,28 @@ class Settings extends Component
         $user = Auth::user();
         $tools = app(ToolRegistry::class)->allWithSettings($user);
 
+        $integrationConnections = $user->connections()
+            ->whereIn('provider', [
+                Connection::PROVIDER_GITHUB,
+                Connection::PROVIDER_GITLAB,
+                Connection::PROVIDER_JIRA,
+                Connection::PROVIDER_GOOGLE,
+            ])
+            ->orderByDesc('is_default')
+            ->orderBy('label')
+            ->get()
+            ->groupBy('provider');
+
         return view('livewire.settings', [
             'avatarUrl' => $this->resolveAvatarUrl(),
             'tools' => $tools->groupBy('category'),
             'googleConnected' => $user->hasGoogleConnected(),
             'telegramLinked' => $user->hasTelegramLinked(),
-            'aiConfig' => $this->buildAiConfig(),
+            'gitlabConnections' => $integrationConnections->get(Connection::PROVIDER_GITLAB, collect()),
+            'githubConnections' => $integrationConnections->get(Connection::PROVIDER_GITHUB, collect()),
+            'jiraConnections' => $integrationConnections->get(Connection::PROVIDER_JIRA, collect()),
+            'googleConnections' => $integrationConnections->get(Connection::PROVIDER_GOOGLE, collect()),
         ]);
-    }
-
-    private function buildAiConfig(): array
-    {
-        $defaultProvider = (string) config('ai.default');
-        $defaultModel = (string) config("ai.models.{$defaultProvider}", '—');
-
-        $agentProvider = fn (string $key): string => (string) (config("ai.agents.{$key}.provider") ?: $defaultProvider);
-        $agentModel = fn (string $key): string => (string) (config("ai.agents.{$key}.model") ?: config("ai.models.{$agentProvider($key)}", '—'));
-
-        $embProvider = (string) config('ai.default_for_embeddings', 'openai');
-        $sttProvider = (string) config('ai.default_for_transcription', 'openai');
-        $ttsProvider = (string) config('ai.default_for_audio', 'openai');
-
-        return [
-            [
-                'name' => 'Chat',
-                'description' => 'Main conversation with your assistant',
-                'provider' => $defaultProvider,
-                'model' => $defaultModel,
-                'env_vars' => ['AI_DEFAULT_PROVIDER', '{PROVIDER}_DEFAULT_MODEL'],
-                'compatible' => ['anthropic', 'openai', 'deepseek', 'xai', 'gemini', 'ollama'],
-            ],
-            [
-                'name' => 'Memory Extraction',
-                'description' => 'Extracts facts from conversations in the background',
-                'provider' => $agentProvider('memory_extractor'),
-                'model' => $agentModel('memory_extractor'),
-                'env_vars' => ['MEMORY_EXTRACTOR_PROVIDER', 'MEMORY_EXTRACTOR_MODEL'],
-                'compatible' => ['anthropic', 'openai', 'gemini'],
-                'note' => 'Requires structured output support',
-            ],
-            [
-                'name' => 'Reminder Parser',
-                'description' => 'Parses natural language reminders in chat',
-                'provider' => $agentProvider('reminder_parser'),
-                'model' => $agentModel('reminder_parser'),
-                'env_vars' => ['REMINDER_PARSER_PROVIDER', 'REMINDER_PARSER_MODEL'],
-                'compatible' => ['anthropic', 'openai', 'gemini'],
-                'note' => 'Requires structured output support',
-            ],
-            [
-                'name' => 'Daily Briefing',
-                'description' => 'Generates your scheduled morning briefing email',
-                'provider' => $agentProvider('daily_briefing'),
-                'model' => $agentModel('daily_briefing'),
-                'env_vars' => ['DAILY_BRIEFING_PROVIDER', 'DAILY_BRIEFING_MODEL'],
-                'compatible' => ['anthropic', 'openai', 'deepseek', 'xai', 'gemini', 'ollama'],
-            ],
-            [
-                'name' => 'Embeddings',
-                'description' => 'Powers semantic search for memories, documents & notes',
-                'provider' => $embProvider,
-                'model' => (string) (config('ai.embedding_model') ?: config("ai.models.{$embProvider}", '—')),
-                'env_vars' => ['AI_DEFAULT_EMBEDDINGS_PROVIDER', 'AI_EMBEDDING_MODEL', 'AI_EMBEDDING_DIMENSIONS'],
-                'compatible' => ['openai', 'ollama', 'gemini'],
-                'note' => 'Changing dimensions requires a DB migration & re-ingestion',
-            ],
-            [
-                'name' => 'Voice Transcription (STT)',
-                'description' => 'Converts your voice input to text',
-                'provider' => $sttProvider,
-                'model' => (string) (config('ai.stt_model') ?: '—'),
-                'env_vars' => ['AI_DEFAULT_STT_PROVIDER', 'AI_STT_MODEL'],
-                'compatible' => ['openai', 'gemini'],
-            ],
-            [
-                'name' => 'Text-to-Speech (TTS)',
-                'description' => 'Reads assistant responses aloud',
-                'provider' => $ttsProvider,
-                'model' => (string) (config('ai.tts_model') ?: '—'),
-                'env_vars' => ['AI_DEFAULT_AUDIO_PROVIDER', 'AI_TTS_MODEL'],
-                'compatible' => ['openai', 'eleven'],
-            ],
-        ];
     }
 
     private function resolveAvatarUrl(): ?string

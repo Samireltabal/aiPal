@@ -107,6 +107,7 @@ class MeetingNotesTool extends AiTool
 
                 Task::create([
                     'user_id' => $this->user->id,
+                    'context_id' => $this->user->currentContext()?->id,
                     'title' => $item['title'],
                     'description' => $item['notes'] ?? null,
                     'priority' => $item['priority'] ?? 'medium',

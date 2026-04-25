@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -13,19 +14,46 @@ class JiraService
 {
     private string $baseUrl;
 
+    private string $host;
+
     private string $email;
 
     private string $token;
 
-    public function __construct(User $user)
+    public function __construct(Connection $connection)
     {
-        if (! $user->hasJiraConnected()) {
-            throw new RuntimeException('Jira is not configured. Please add your Jira credentials in Settings.');
+        if ($connection->provider !== Connection::PROVIDER_JIRA) {
+            throw new RuntimeException("Connection {$connection->id} is not a Jira connection.");
         }
 
-        $this->baseUrl = rtrim((string) $user->jira_host, '/').'/rest/api/3';
-        $this->email = (string) $user->jira_email;
-        $this->token = (string) $user->jira_token;
+        $host = $connection->credential('host');
+        $email = $connection->credential('email');
+        $token = $connection->credential('token');
+
+        if ($host === null || $email === null || $token === null) {
+            throw new RuntimeException('Jira credentials are incomplete. Please re-add this account in Settings.');
+        }
+
+        $this->host = rtrim($host, '/');
+        $this->baseUrl = $this->host.'/rest/api/3';
+        $this->email = $email;
+        $this->token = $token;
+    }
+
+    public static function forUser(User $user): self
+    {
+        $connection = $user->pickConnection(Connection::PROVIDER_JIRA);
+
+        if ($connection === null) {
+            throw new RuntimeException('Jira is not configured. Please add a Jira account in Settings.');
+        }
+
+        return new self($connection);
+    }
+
+    public function host(): string
+    {
+        return $this->host;
     }
 
     /** Search issues using JQL. */

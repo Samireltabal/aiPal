@@ -30,6 +30,7 @@ class EmbeddingService
 
         return Memory::create([
             'user_id' => $user->id,
+            'context_id' => $user->defaultContext()?->id,
             'content' => $content,
             'embedding' => $embedding,
             'source' => $source,

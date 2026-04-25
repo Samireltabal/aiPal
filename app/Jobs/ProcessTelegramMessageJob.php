@@ -11,6 +11,7 @@ use App\Services\TelegramService;
 use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Transcription;
 
 class ProcessTelegramMessageJob implements ShouldQueue
@@ -85,10 +86,19 @@ class ProcessTelegramMessageJob implements ShouldQueue
             ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
 
         if ($user->telegram_conversation_id) {
+            $user->applyConversationContext($user->telegram_conversation_id);
             $response = $agent->continue($user->telegram_conversation_id, as: $user)->prompt($text);
         } else {
             $response = $agent->forUser($user)->prompt($text);
             $user->update(['telegram_conversation_id' => $response->conversationId]);
+        }
+
+        if (($pending = $user->pendingContextSwitch()) !== null && $response->conversationId !== null) {
+            DB::table('agent_conversations')
+                ->where('id', $response->conversationId)
+                ->where('user_id', $user->id)
+                ->update(['context_id' => $pending->id]);
+            $user->clearPendingContextSwitch();
         }
 
         $reply = (string) $response;

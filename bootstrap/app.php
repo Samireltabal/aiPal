@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             '/webhooks/telegram',
             '/webhooks/whatsapp',
             '/webhooks/workflow/*',
+            '/webhooks/email/inbound',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

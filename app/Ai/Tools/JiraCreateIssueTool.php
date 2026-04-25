@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\JiraService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class JiraCreateIssueTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
     ) {}
@@ -69,6 +72,7 @@ class JiraCreateIssueTool extends AiTool
                 ->description('Parent issue key, e.g. "JOODDEV-1414". When provided, the issue is created as a sub-task under this parent. The correct sub-task type ID is fetched automatically from the project.')
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -78,8 +82,13 @@ class JiraCreateIssueTool extends AiTool
             return 'Jira is not connected. Please add your Jira credentials in Settings.';
         }
 
+        return $this->withRequestedContext($request, fn (): Stringable|string => $this->doExecute($request));
+    }
+
+    private function doExecute(Request $request): Stringable|string
+    {
         try {
-            $jira = new JiraService($this->user);
+            $jira = JiraService::forUser($this->user);
             $issue = $jira->createIssue(
                 projectKey: $request['project_key'],
                 summary: $request['summary'],
@@ -93,7 +102,7 @@ class JiraCreateIssueTool extends AiTool
         }
 
         $key = $issue['key'] ?? 'unknown';
-        $url = rtrim((string) $this->user->jira_host, '/')."/browse/{$key}";
+        $url = $jira->host()."/browse/{$key}";
 
         return "Jira issue created: {$key} — \"{$request['summary']}\" ({$url})";
     }

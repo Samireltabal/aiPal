@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\GoogleToken;
+use App\Models\Connection;
 use App\Models\User;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 
 class GoogleCalendarService
 {
-    public function __construct(private readonly GoogleClientFactory $clientFactory) {}
+    public function __construct(private readonly GoogleConnectionAuth $auth) {}
 
     /**
      * @return array<int, array{id: string, summary: string, start: string, end: string, location: ?string, description: ?string}>
@@ -33,14 +33,20 @@ class GoogleCalendarService
      */
     public function listEvents(User $user, Carbon $from, Carbon $to): array
     {
-        $token = $this->getRefreshedToken($user);
-        if ($token === null) {
+        $connection = $this->auth->pickConnection($user);
+        if ($connection === null) {
             return [];
         }
 
-        $client = $this->clientFactory->make();
-        $client->setAccessToken($token->toGoogleArray());
+        return $this->listEventsForConnection($connection, $from, $to);
+    }
 
+    /**
+     * @return array<int, array{id: string, summary: string, start: string, end: string, location: ?string, description: ?string}>
+     */
+    public function listEventsForConnection(Connection $connection, Carbon $from, Carbon $to): array
+    {
+        $client = $this->auth->authenticatedClient($connection);
         $service = new Calendar($client);
 
         $events = $service->events->listEvents('primary', [
@@ -62,30 +68,5 @@ class GoogleCalendarService
             ])
             ->values()
             ->all();
-    }
-
-    private function getRefreshedToken(User $user): ?GoogleToken
-    {
-        $token = $user->googleToken;
-        if ($token === null) {
-            return null;
-        }
-
-        if ($token->isExpired() && $token->refresh_token) {
-            $client = $this->clientFactory->make();
-            $client->setAccessToken($token->toGoogleArray());
-            $newToken = $client->fetchAccessTokenWithRefreshToken($token->refresh_token);
-
-            if (isset($newToken['access_token'])) {
-                $token->update([
-                    'access_token' => $newToken['access_token'],
-                    'expires_at' => isset($newToken['expires_in'])
-                        ? Carbon::now()->addSeconds($newToken['expires_in'])
-                        : null,
-                ]);
-            }
-        }
-
-        return $token->refresh();
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\JiraService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class JiraSearchTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
     ) {}
@@ -54,6 +57,7 @@ class JiraSearchTool extends AiTool
                 ->max(20)
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -63,8 +67,13 @@ class JiraSearchTool extends AiTool
             return 'Jira is not connected. Please add your Jira credentials in Settings.';
         }
 
+        return $this->withRequestedContext($request, fn (): Stringable|string => $this->doExecute($request));
+    }
+
+    private function doExecute(Request $request): Stringable|string
+    {
         try {
-            $jira = new JiraService($this->user);
+            $jira = JiraService::forUser($this->user);
             $issues = $jira->searchIssues($request['jql'], $request['max_results'] ?? 10);
         } catch (RuntimeException $e) {
             return $e->getMessage();
