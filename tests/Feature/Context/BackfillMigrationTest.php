@@ -141,23 +141,10 @@ class BackfillMigrationTest extends TestCase
         $this->assertSame(0, Connection::where('user_id', $user->id)->count());
     }
 
-    public function test_credentials_are_encrypted_via_model_cast_after_backfill(): void
-    {
-        $user = $this->userWithDefaultContext([
-            'github_token' => 'ghp_secret_token_xyz',
-        ]);
-
-        $this->rerunBackfill();
-
-        $connection = Connection::where('user_id', $user->id)
-            ->where('provider', 'github')
-            ->firstOrFail();
-
-        // Raw storage should not contain plaintext.
-        $raw = DB::table('connections')->where('id', $connection->id)->value('credentials');
-        $this->assertStringNotContainsString('ghp_secret_token_xyz', (string) $raw);
-
-        // Model cast decrypts correctly.
-        $this->assertSame('ghp_secret_token_xyz', $connection->credentials['token']);
-    }
+    // Note: a previous test seeded users.github_token directly to verify
+    // encrypted credential round-trip. That scalar column has since been
+    // dropped (legacy backfill is complete in production); credential
+    // encryption is still covered by the OAuth callback tests for Google
+    // and Microsoft, which assert raw storage doesn't contain plaintext
+    // and the cast decrypts correctly.
 }

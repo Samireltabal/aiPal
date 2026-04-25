@@ -86,6 +86,35 @@ class MicrosoftOAuthClient
         return $response->successful() ? ($response->json() ?? []) : [];
     }
 
+    /**
+     * Decode the OpenID id_token (JWT) returned by the token endpoint. With
+     * `openid email profile` scopes the payload includes claims like
+     * `email`, `preferred_username`, `upn`, and `unique_name` — we use these
+     * to identify the connected account without an extra Graph /me call,
+     * which avoids needing the User.Read scope for personal accounts.
+     *
+     * @return array<string, mixed>
+     */
+    public function decodeIdToken(string $idToken): array
+    {
+        $parts = explode('.', $idToken);
+        if (count($parts) !== 3) {
+            return [];
+        }
+
+        $payload = strtr($parts[1], '-_', '+/');
+        $payload .= str_repeat('=', (4 - strlen($payload) % 4) % 4);
+        $decoded = base64_decode($payload, true);
+
+        if ($decoded === false) {
+            return [];
+        }
+
+        $claims = json_decode($decoded, true);
+
+        return is_array($claims) ? $claims : [];
+    }
+
     private function authority(): string
     {
         $tenant = config('services.microsoft.tenant', 'common');
