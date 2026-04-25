@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\JwtClaims;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -97,22 +98,7 @@ class MicrosoftOAuthClient
      */
     public function decodeIdToken(string $idToken): array
     {
-        $parts = explode('.', $idToken);
-        if (count($parts) !== 3) {
-            return [];
-        }
-
-        $payload = strtr($parts[1], '-_', '+/');
-        $payload .= str_repeat('=', (4 - strlen($payload) % 4) % 4);
-        $decoded = base64_decode($payload, true);
-
-        if ($decoded === false) {
-            return [];
-        }
-
-        $claims = json_decode($decoded, true);
-
-        return is_array($claims) ? $claims : [];
+        return JwtClaims::decode($idToken);
     }
 
     private function authority(): string

@@ -77,6 +77,69 @@ class GoogleAuthControllerTest extends TestCase
         $this->assertSame('1//refresh', $connection->credential('refresh_token'));
     }
 
+    public function test_callback_uses_id_token_email_when_present(): void
+    {
+        $idToken = $this->makeIdToken(['email' => 'second@gmail.com']);
+
+        $mockClient = Mockery::mock(Client::class);
+        $mockClient->shouldReceive('fetchAccessTokenWithAuthCode')
+            ->once()
+            ->andReturn([
+                'access_token' => 'ya29.t2',
+                'refresh_token' => '1//r2',
+                'expires_in' => 3600,
+                'id_token' => $idToken,
+                'scope' => 'https://www.googleapis.com/auth/gmail.readonly',
+            ]);
+        // No userinfo fallback because id_token gave us the email.
+        $mockClient->shouldNotReceive('setAccessToken');
+
+        $mockFactory = Mockery::mock(GoogleClientFactory::class);
+        $mockFactory->shouldReceive('make')->once()->andReturn($mockClient);
+        $this->app->instance(GoogleClientFactory::class, $mockFactory);
+
+        $user = User::factory()->withDefaultContext()->create();
+
+        // Pre-existing default Google connection.
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()->id,
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'capabilities' => [Connection::CAPABILITY_MAIL],
+            'label' => 'first@gmail.com',
+            'identifier' => 'first@gmail.com',
+            'credentials' => ['access_token' => 'old', 'refresh_token' => 'r', 'scopes' => ''],
+            'is_default' => true,
+            'enabled' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('google.callback', ['code' => 'c']))
+            ->assertRedirect(route('settings'));
+
+        $this->assertDatabaseHas('connections', [
+            'user_id' => $user->id,
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'identifier' => 'second@gmail.com',
+        ]);
+
+        // Existing default not demoted.
+        $first = $user->connections()->where('identifier', 'first@gmail.com')->firstOrFail();
+        $this->assertTrue((bool) $first->is_default);
+
+        $second = $user->connections()->where('identifier', 'second@gmail.com')->firstOrFail();
+        $this->assertFalse((bool) $second->is_default);
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function makeIdToken(array $claims): string
+    {
+        $segment = static fn (array $payload): string => rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=');
+
+        return $segment(['alg' => 'RS256', 'typ' => 'JWT']).'.'.$segment($claims).'.signature';
+    }
+
     public function test_callback_rejects_missing_code(): void
     {
         $user = User::factory()->create();

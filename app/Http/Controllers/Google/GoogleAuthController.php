@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Google;
 
 use App\Models\Connection;
 use App\Services\GoogleClientFactory;
+use App\Support\JwtClaims;
 use Google\Service\Calendar;
 use Google\Service\Gmail;
 use Google\Service\Oauth2;
@@ -47,16 +48,24 @@ class GoogleAuthController
             : null;
 
         // Identify the linked Google account by email so multi-account works.
-        // userinfo lookup runs against the freshly issued token; if it fails we
-        // fall back to a per-user placeholder so the connection still saves.
-        $client->setAccessToken($token);
+        // Prefer the id_token claim (no extra API call, always populated when
+        // 'openid email' scopes are granted). Fall back to a userinfo lookup,
+        // then to a per-user placeholder so the connection still saves.
         $email = null;
-        try {
-            $oauth = new Oauth2($client);
-            $info = $oauth->userinfo->get();
-            $email = $info->getEmail();
-        } catch (\Throwable) {
-            // ignore — fallback below
+        if (! empty($token['id_token'])) {
+            $claims = JwtClaims::decode($token['id_token']);
+            $email = $claims['email'] ?? null;
+        }
+
+        if ($email === null) {
+            $client->setAccessToken($token);
+            try {
+                $oauth = new Oauth2($client);
+                $info = $oauth->userinfo->get();
+                $email = $info->getEmail();
+            } catch (\Throwable) {
+                // ignore — fallback below
+            }
         }
 
         $user = $request->user();
@@ -94,17 +103,20 @@ class GoogleAuthController
             ]);
         }
 
-        // Promote the just-linked account to default if there is no default
-        // yet (covers the race where the legacy "primary-{id}" placeholder was
-        // promoted by the migration but the user has now reconnected).
-        $user->connections()
+        // If no Google connection is currently default, promote this one.
+        // Don't demote an existing default — the user can pick a default
+        // explicitly in Settings.
+        $hasDefault = $user->connections()
             ->where('provider', Connection::PROVIDER_GOOGLE)
-            ->where('identifier', $identifier)
-            ->update(['is_default' => true]);
-        $user->connections()
-            ->where('provider', Connection::PROVIDER_GOOGLE)
-            ->where('identifier', '!=', $identifier)
-            ->update(['is_default' => false]);
+            ->where('is_default', true)
+            ->exists();
+
+        if (! $hasDefault) {
+            $user->connections()
+                ->where('provider', Connection::PROVIDER_GOOGLE)
+                ->where('identifier', $identifier)
+                ->update(['is_default' => true]);
+        }
 
         return redirect()->route('settings')->with('success', "Google account {$label} connected.");
     }
