@@ -73,7 +73,7 @@ class GitLabCreateIssueTool extends AiTool
         }
 
         try {
-            $gitlab = new GitLabService($this->user);
+            $gitlab = GitLabService::forUser($this->user);
             $issue = $gitlab->createIssue(
                 projectPath: $request['project_path'],
                 title: $request['title'],

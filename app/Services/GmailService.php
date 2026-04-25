@@ -4,19 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\GoogleToken;
 use App\Models\User;
 use Google\Client;
 use Google\Service\Gmail;
 use Google\Service\Gmail\Draft;
 use Google\Service\Gmail\Message;
 use Google\Service\Gmail\MessagePart;
-use Illuminate\Support\Carbon;
 use RuntimeException;
 
 class GmailService
 {
-    public function __construct(private readonly GoogleClientFactory $clientFactory) {}
+    public function __construct(private readonly GoogleConnectionAuth $auth) {}
 
     /**
      * @return array<int, array{id: string, threadId: string, subject: string, from: string, date: string, snippet: string, isUnread: bool}>
@@ -107,42 +105,17 @@ class GmailService
 
     private function authenticatedClient(User $user): Client
     {
-        $token = $this->refreshedToken($user);
+        $connection = $this->auth->pickConnection($user);
 
-        $client = $this->clientFactory->make();
-        $client->setAccessToken($token->toGoogleArray());
-
-        return $client;
-    }
-
-    private function refreshedToken(User $user): GoogleToken
-    {
-        $token = $user->googleToken;
-
-        if ($token === null) {
+        if ($connection === null) {
             throw new RuntimeException('Google account is not connected. Please connect in Settings.');
         }
 
-        if (! $token->hasScope(Gmail::GMAIL_READONLY)) {
+        if (! $this->auth->hasScope($connection, Gmail::GMAIL_READONLY)) {
             throw new RuntimeException('Gmail permission not granted. Please reconnect your Google account in Settings to allow email access.');
         }
 
-        if ($token->isExpired() && $token->refresh_token) {
-            $client = $this->clientFactory->make();
-            $client->setAccessToken($token->toGoogleArray());
-            $new = $client->fetchAccessTokenWithRefreshToken($token->refresh_token);
-
-            if (isset($new['access_token'])) {
-                $token->update([
-                    'access_token' => $new['access_token'],
-                    'expires_at' => isset($new['expires_in'])
-                        ? Carbon::now()->addSeconds($new['expires_in'])
-                        : null,
-                ]);
-            }
-        }
-
-        return $token->refresh();
+        return $this->auth->authenticatedClient($connection);
     }
 
     private function extractBody(MessagePart $payload): string

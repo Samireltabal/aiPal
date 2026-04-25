@@ -96,6 +96,34 @@ class User extends Authenticatable
     }
 
     /**
+     * In-memory override so a request/job can scope context-aware tools
+     * (CreateTask, CreateReminder, CreateNote, ...) to the channel's context
+     * without persisting anything on the User row.
+     */
+    private ?Context $activeContext = null;
+
+    public function setActiveContext(?Context $context): static
+    {
+        $this->activeContext = $context;
+
+        return $this;
+    }
+
+    public function activeContext(): ?Context
+    {
+        return $this->activeContext;
+    }
+
+    /**
+     * The context AI tools should attach to records they create.
+     * Prefers an explicit per-request override, falls back to the user's default.
+     */
+    public function currentContext(): ?Context
+    {
+        return $this->activeContext ?? $this->defaultContext();
+    }
+
+    /**
      * All enabled connections that provide a capability, optionally scoped to
      * a specific context. Capability strings are defined on Connection
      * (CAPABILITY_MAIL, CAPABILITY_CALENDAR, CAPABILITY_CHAT, ...).
@@ -137,14 +165,48 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function googleToken(): HasOne
+    /**
+     * Pick a connection for a provider scoped to the user's current context.
+     * Resolution order:
+     *   1) connection in the active/default context marked is_default
+     *   2) any connection in the active/default context
+     *   3) the global is_default connection (any context)
+     *   4) the first enabled connection
+     * Returns null when the user has none.
+     */
+    public function pickConnection(string $provider): ?Connection
     {
-        return $this->hasOne(GoogleToken::class);
+        $context = $this->currentContext();
+
+        $query = $this->connections()
+            ->where('provider', $provider)
+            ->where('enabled', true);
+
+        if ($context !== null) {
+            $scoped = (clone $query)->where('context_id', $context->id);
+
+            $default = (clone $scoped)->where('is_default', true)->first();
+            if ($default) {
+                return $default;
+            }
+
+            $any = $scoped->first();
+            if ($any) {
+                return $any;
+            }
+        }
+
+        $globalDefault = (clone $query)->where('is_default', true)->first();
+        if ($globalDefault) {
+            return $globalDefault;
+        }
+
+        return $query->first();
     }
 
     public function hasGoogleConnected(): bool
     {
-        return $this->googleToken()->exists();
+        return $this->hasConnectionFor(Connection::PROVIDER_GOOGLE);
     }
 
     public function hasTelegramLinked(): bool
@@ -173,17 +235,17 @@ class User extends Authenticatable
 
     public function hasJiraConnected(): bool
     {
-        return $this->jira_host !== null && $this->jira_email !== null && $this->jira_token !== null;
+        return $this->hasConnectionFor(Connection::PROVIDER_JIRA);
     }
 
     public function hasGitLabConnected(): bool
     {
-        return $this->gitlab_token !== null;
+        return $this->hasConnectionFor(Connection::PROVIDER_GITLAB);
     }
 
     public function hasGitHubConnected(): bool
     {
-        return $this->github_token !== null;
+        return $this->hasConnectionFor(Connection::PROVIDER_GITHUB);
     }
 
     public function pushSubscriptions(): HasMany

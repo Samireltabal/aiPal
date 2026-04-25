@@ -69,7 +69,7 @@ class GitLabCommitsTool extends AiTool
         }
 
         try {
-            $gitlab = new GitLabService($this->user);
+            $gitlab = GitLabService::forUser($this->user);
             $commits = $gitlab->listCommits(
                 projectPath: $request['project_path'],
                 branch: $request['branch'] ?? null,

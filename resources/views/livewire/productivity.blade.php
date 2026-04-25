@@ -157,6 +157,13 @@
                     </div>
                 </div>
 
+                <div class="flex items-center justify-end mb-2">
+                    <label class="inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                        <input wire:model.live="showSentReminders" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        Show past (sent) reminders
+                    </label>
+                </div>
+
                 {{-- Reminder list --}}
                 @if ($reminders->isEmpty())
                     <div class="text-center py-16 text-sm text-gray-500 dark:text-gray-400">

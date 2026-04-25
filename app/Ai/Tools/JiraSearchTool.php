@@ -64,7 +64,7 @@ class JiraSearchTool extends AiTool
         }
 
         try {
-            $jira = new JiraService($this->user);
+            $jira = JiraService::forUser($this->user);
             $issues = $jira->searchIssues($request['jql'], $request['max_results'] ?? 10);
         } catch (RuntimeException $e) {
             return $e->getMessage();

@@ -70,7 +70,7 @@ class GitLabMRTool extends AiTool
         }
 
         try {
-            $gitlab = new GitLabService($this->user);
+            $gitlab = GitLabService::forUser($this->user);
             $mrs = $gitlab->listMergeRequests(
                 projectPath: $request['project_path'] ?? null,
                 state: $request['state'] ?? 'opened',

@@ -81,6 +81,29 @@ class Connection extends Model
         return in_array($capability, (array) $this->capabilities, true);
     }
 
+    /**
+     * Read a single key from the encrypted credentials JSON. Returns null if
+     * absent — callers should treat null as "credential missing" and surface a
+     * useful error to the user.
+     */
+    public function credential(string $key): ?string
+    {
+        $value = ($this->credentials ?? [])[$key] ?? null;
+
+        return $value === null ? null : (string) $value;
+    }
+
+    /**
+     * Replace one or more keys in the encrypted credentials JSON without
+     * losing other keys (useful for OAuth refresh — write access_token + new
+     * expiry without dropping the refresh_token).
+     */
+    public function mergeCredentials(array $partial): void
+    {
+        $this->credentials = array_replace((array) ($this->credentials ?? []), $partial);
+        $this->save();
+    }
+
     public function scopeEnabled($query)
     {
         return $query->where('enabled', true);

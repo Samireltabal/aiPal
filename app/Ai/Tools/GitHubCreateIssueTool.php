@@ -73,7 +73,7 @@ class GitHubCreateIssueTool extends AiTool
         }
 
         try {
-            $github = new GitHubService($this->user);
+            $github = GitHubService::forUser($this->user);
             $issue = $github->createIssue(
                 repo: $request['repo'],
                 title: $request['title'],

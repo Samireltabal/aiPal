@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Calendar;
 
 use App\Ai\Tools\GoogleCalendarTool;
-use App\Models\GoogleToken;
+use App\Models\Connection;
 use App\Models\User;
 use App\Services\GoogleCalendarService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,8 +31,17 @@ class GoogleCalendarToolTest extends TestCase
 
     public function test_returns_no_events_when_calendar_is_empty(): void
     {
-        $user = User::factory()->create();
-        GoogleToken::create(['user_id' => $user->id, 'access_token' => 'tok', 'scopes' => '']);
+        $user = User::factory()->withDefaultContext()->create();
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()->id,
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'capabilities' => [Connection::CAPABILITY_CALENDAR],
+            'label' => 'Google',
+            'identifier' => 'me@example.com',
+            'credentials' => ['access_token' => 'tok', 'scopes' => ''],
+            'is_default' => true,
+            'enabled' => true,
+        ]);
 
         $service = Mockery::mock(GoogleCalendarService::class);
         $service->shouldReceive('listEvents')->once()->andReturn([]);
@@ -45,8 +54,17 @@ class GoogleCalendarToolTest extends TestCase
 
     public function test_returns_formatted_events(): void
     {
-        $user = User::factory()->create();
-        GoogleToken::create(['user_id' => $user->id, 'access_token' => 'tok', 'scopes' => '']);
+        $user = User::factory()->withDefaultContext()->create();
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()->id,
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'capabilities' => [Connection::CAPABILITY_CALENDAR],
+            'label' => 'Google',
+            'identifier' => 'me@example.com',
+            'credentials' => ['access_token' => 'tok', 'scopes' => ''],
+            'is_default' => true,
+            'enabled' => true,
+        ]);
 
         $service = Mockery::mock(GoogleCalendarService::class);
         $service->shouldReceive('listEvents')->once()->andReturn([

@@ -79,7 +79,7 @@ class GitHubReviewPRTool extends AiTool
         $postComment = (bool) ($request['post_comment'] ?? false);
 
         try {
-            $github = new GitHubService($this->user);
+            $github = GitHubService::forUser($this->user);
             $pr = $github->getPullRequest($repo, $prNumber);
             $diff = $github->getPullRequestDiff($repo, $prNumber);
         } catch (RuntimeException $e) {

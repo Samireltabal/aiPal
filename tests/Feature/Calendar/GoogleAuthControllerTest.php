@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Calendar;
 
-use App\Models\GoogleToken;
+use App\Models\Connection;
 use App\Models\User;
 use App\Services\GoogleClientFactory;
 use Google\Client;
@@ -19,7 +19,7 @@ class GoogleAuthControllerTest extends TestCase
     public function test_redirect_redirects_to_google_auth_url(): void
     {
         $mockClient = Mockery::mock(Client::class);
-        $mockClient->shouldReceive('addScope')->times(3);
+        $mockClient->shouldReceive('addScope')->times(4);
         $mockClient->shouldReceive('setAccessType')->once();
         $mockClient->shouldReceive('setPrompt')->once();
         $mockClient->shouldReceive('createAuthUrl')->once()->andReturn('https://accounts.google.com/o/oauth2/auth?fake');
@@ -36,7 +36,7 @@ class GoogleAuthControllerTest extends TestCase
             ->assertRedirect('https://accounts.google.com/o/oauth2/auth?fake');
     }
 
-    public function test_callback_stores_google_token(): void
+    public function test_callback_stores_connection_with_credentials(): void
     {
         $mockClient = Mockery::mock(Client::class);
         $mockClient->shouldReceive('fetchAccessTokenWithAuthCode')
@@ -48,23 +48,33 @@ class GoogleAuthControllerTest extends TestCase
                 'expires_in' => 3600,
                 'scope' => 'https://www.googleapis.com/auth/calendar.readonly',
             ]);
+        // setAccessToken is called for the userinfo lookup; the lookup itself
+        // is allowed to throw — fallback identifier is used.
+        $mockClient->shouldReceive('setAccessToken')->once();
 
         $mockFactory = Mockery::mock(GoogleClientFactory::class);
         $mockFactory->shouldReceive('make')->once()->andReturn($mockClient);
 
         $this->app->instance(GoogleClientFactory::class, $mockFactory);
 
-        $user = User::factory()->create();
+        $user = User::factory()->withDefaultContext()->create();
 
         $this->actingAs($user)
             ->get(route('google.callback', ['code' => 'test_code']))
             ->assertRedirect(route('settings'));
 
-        $this->assertDatabaseHas('google_tokens', [
+        $this->assertDatabaseHas('connections', [
             'user_id' => $user->id,
-            'access_token' => 'ya29.test',
-            'refresh_token' => '1//refresh',
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'is_default' => true,
         ]);
+
+        $connection = $user->connections()
+            ->where('provider', Connection::PROVIDER_GOOGLE)
+            ->firstOrFail();
+
+        $this->assertSame('ya29.test', $connection->credential('access_token'));
+        $this->assertSame('1//refresh', $connection->credential('refresh_token'));
     }
 
     public function test_callback_rejects_missing_code(): void
@@ -97,24 +107,29 @@ class GoogleAuthControllerTest extends TestCase
             ->get(route('google.callback', ['code' => 'bad_code']))
             ->assertRedirect(route('settings'));
 
-        $this->assertDatabaseEmpty('google_tokens');
+        $this->assertSame(0, $user->connections()->where('provider', Connection::PROVIDER_GOOGLE)->count());
     }
 
-    public function test_disconnect_deletes_token(): void
+    public function test_disconnect_deletes_google_connections(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withDefaultContext()->create();
 
-        GoogleToken::create([
-            'user_id' => $user->id,
-            'access_token' => 'ya29.old',
-            'scopes' => '',
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()->id,
+            'provider' => Connection::PROVIDER_GOOGLE,
+            'capabilities' => [Connection::CAPABILITY_MAIL],
+            'label' => 'Google',
+            'identifier' => 'me@example.com',
+            'credentials' => ['access_token' => 'ya29.old', 'scopes' => ''],
+            'is_default' => true,
+            'enabled' => true,
         ]);
 
         $this->actingAs($user)
             ->delete(route('google.disconnect'))
             ->assertRedirect(route('settings'));
 
-        $this->assertDatabaseEmpty('google_tokens');
+        $this->assertSame(0, $user->connections()->where('provider', Connection::PROVIDER_GOOGLE)->count());
     }
 
     public function test_unauthenticated_user_cannot_access_google_routes(): void

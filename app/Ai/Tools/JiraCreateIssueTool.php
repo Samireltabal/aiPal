@@ -79,7 +79,7 @@ class JiraCreateIssueTool extends AiTool
         }
 
         try {
-            $jira = new JiraService($this->user);
+            $jira = JiraService::forUser($this->user);
             $issue = $jira->createIssue(
                 projectKey: $request['project_key'],
                 summary: $request['summary'],
@@ -93,7 +93,7 @@ class JiraCreateIssueTool extends AiTool
         }
 
         $key = $issue['key'] ?? 'unknown';
-        $url = rtrim((string) $this->user->jira_host, '/')."/browse/{$key}";
+        $url = $jira->host()."/browse/{$key}";
 
         return "Jira issue created: {$key} — \"{$request['summary']}\" ({$url})";
     }

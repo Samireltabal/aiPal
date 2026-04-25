@@ -6,6 +6,7 @@ namespace App\Livewire;
 
 use App\Ai\Services\ToolRegistry;
 use App\Jobs\GenerateAvatarJob;
+use App\Models\Connection;
 use App\Models\UserToolSetting;
 use App\Services\PersonaGenerator;
 use App\Services\WebPushService;
@@ -87,6 +88,10 @@ class Settings extends Component
 
     public bool $whatsappSaved = false;
 
+    // — Jira "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $jiraLabel = null;
+
     #[Validate('nullable|url|max:255')]
     public ?string $jiraHost = null;
 
@@ -98,6 +103,10 @@ class Settings extends Component
 
     public bool $jiraSaved = false;
 
+    // — GitLab "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $gitlabLabel = null;
+
     #[Validate('nullable|url|max:255')]
     public ?string $gitlabHost = null;
 
@@ -105,6 +114,10 @@ class Settings extends Component
     public ?string $gitlabToken = null;
 
     public bool $gitlabSaved = false;
+
+    // — GitHub "add account" form —
+    #[Validate('nullable|string|max:60')]
+    public ?string $githubLabel = null;
 
     #[Validate('nullable|string|max:255')]
     public ?string $githubToken = null;
@@ -133,12 +146,7 @@ class Settings extends Component
 
         $this->telegramChatId = $user->telegram_chat_id;
         $this->whatsappPhone = $user->whatsapp_phone;
-        $this->jiraHost = $user->jira_host;
-        $this->jiraEmail = $user->jira_email;
-        $this->jiraToken = $user->jira_token;
-        $this->gitlabHost = $user->gitlab_host ?? 'https://gitlab.com';
-        $this->gitlabToken = $user->gitlab_token;
-        $this->githubToken = $user->github_token;
+        $this->gitlabHost = 'https://gitlab.com';
     }
 
     public function regenerate(): void
@@ -223,31 +231,69 @@ class Settings extends Component
         $this->whatsappSaved = true;
     }
 
-    public function saveGitLabSettings(): void
+    public function addGitLabAccount(): void
     {
         $this->validateOnly('gitlabHost');
         $this->validateOnly('gitlabToken');
 
-        Auth::user()->update([
-            'gitlab_host' => $this->gitlabHost ?: 'https://gitlab.com',
-            'gitlab_token' => $this->gitlabToken ?: null,
+        $token = trim((string) $this->gitlabToken);
+        if ($token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $host = $this->gitlabHost ?: 'https://gitlab.com';
+        $label = $this->gitlabLabel ?: parse_url($host, PHP_URL_HOST) ?: 'GitLab';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_GITLAB,
+            'capabilities' => [Connection::CAPABILITY_CODE],
+            'label' => $label,
+            'identifier' => $host,
+            'credentials' => ['host' => $host, 'token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasGitLabConnected(),
         ]);
 
+        $this->gitlabLabel = null;
+        $this->gitlabHost = 'https://gitlab.com';
+        $this->gitlabToken = null;
         $this->gitlabSaved = true;
     }
 
-    public function saveJiraSettings(): void
+    public function addJiraAccount(): void
     {
         $this->validateOnly('jiraHost');
         $this->validateOnly('jiraEmail');
         $this->validateOnly('jiraToken');
 
-        Auth::user()->update([
-            'jira_host' => $this->jiraHost ?: null,
-            'jira_email' => $this->jiraEmail ?: null,
-            'jira_token' => $this->jiraToken ?: null,
+        $host = trim((string) $this->jiraHost);
+        $email = trim((string) $this->jiraEmail);
+        $token = trim((string) $this->jiraToken);
+
+        if ($host === '' || $email === '' || $token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $label = $this->jiraLabel ?: parse_url($host, PHP_URL_HOST) ?: 'Jira';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_JIRA,
+            'capabilities' => [Connection::CAPABILITY_ISSUES],
+            'label' => $label,
+            'identifier' => $email.'@'.$host,
+            'credentials' => ['host' => $host, 'email' => $email, 'token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasJiraConnected(),
         ]);
 
+        $this->jiraLabel = null;
+        $this->jiraHost = null;
+        $this->jiraEmail = null;
+        $this->jiraToken = null;
         $this->jiraSaved = true;
     }
 
@@ -264,15 +310,79 @@ class Settings extends Component
         $this->pushTestSent = true;
     }
 
-    public function saveGitHubSettings(): void
+    public function addGitHubAccount(): void
     {
         $this->validateOnly('githubToken');
 
-        Auth::user()->update([
-            'github_token' => $this->githubToken ?: null,
+        $token = trim((string) $this->githubToken);
+        if ($token === '') {
+            return;
+        }
+
+        $user = Auth::user();
+        $label = $this->githubLabel ?: 'GitHub';
+
+        $user->connections()->create([
+            'context_id' => $user->defaultContext()?->id,
+            'provider' => Connection::PROVIDER_GITHUB,
+            'capabilities' => [Connection::CAPABILITY_CODE],
+            'label' => $label,
+            'identifier' => 'github.com',
+            'credentials' => ['token' => $token],
+            'enabled' => true,
+            'is_default' => ! $user->hasGitHubConnected(),
         ]);
 
+        $this->githubLabel = null;
+        $this->githubToken = null;
         $this->githubSaved = true;
+    }
+
+    public function removeIntegrationConnection(int $connectionId): void
+    {
+        $user = Auth::user();
+
+        $connection = $user->connections()->whereIn('provider', [
+            Connection::PROVIDER_GITHUB,
+            Connection::PROVIDER_GITLAB,
+            Connection::PROVIDER_JIRA,
+            Connection::PROVIDER_GOOGLE,
+        ])->find($connectionId);
+
+        if ($connection === null) {
+            return;
+        }
+
+        $wasDefault = $connection->is_default;
+        $provider = $connection->provider;
+        $connection->delete();
+
+        // If we removed the default, promote another connection of the same
+        // provider to default so tools keep working without the user having
+        // to flip a flag manually.
+        if ($wasDefault) {
+            $next = $user->connections()
+                ->where('provider', $provider)
+                ->where('enabled', true)
+                ->first();
+            $next?->update(['is_default' => true]);
+        }
+    }
+
+    public function setDefaultIntegrationConnection(int $connectionId): void
+    {
+        $user = Auth::user();
+
+        $connection = $user->connections()->find($connectionId);
+        if ($connection === null) {
+            return;
+        }
+
+        $user->connections()
+            ->where('provider', $connection->provider)
+            ->update(['is_default' => false]);
+
+        $connection->update(['is_default' => true]);
     }
 
     public function saveBriefingSettings(): void
@@ -407,11 +517,27 @@ class Settings extends Component
         $user = Auth::user();
         $tools = app(ToolRegistry::class)->allWithSettings($user);
 
+        $integrationConnections = $user->connections()
+            ->whereIn('provider', [
+                Connection::PROVIDER_GITHUB,
+                Connection::PROVIDER_GITLAB,
+                Connection::PROVIDER_JIRA,
+                Connection::PROVIDER_GOOGLE,
+            ])
+            ->orderByDesc('is_default')
+            ->orderBy('label')
+            ->get()
+            ->groupBy('provider');
+
         return view('livewire.settings', [
             'avatarUrl' => $this->resolveAvatarUrl(),
             'tools' => $tools->groupBy('category'),
             'googleConnected' => $user->hasGoogleConnected(),
             'telegramLinked' => $user->hasTelegramLinked(),
+            'gitlabConnections' => $integrationConnections->get(Connection::PROVIDER_GITLAB, collect()),
+            'githubConnections' => $integrationConnections->get(Connection::PROVIDER_GITHUB, collect()),
+            'jiraConnections' => $integrationConnections->get(Connection::PROVIDER_JIRA, collect()),
+            'googleConnections' => $integrationConnections->get(Connection::PROVIDER_GOOGLE, collect()),
         ]);
     }
 

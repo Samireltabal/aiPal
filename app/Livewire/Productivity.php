@@ -57,12 +57,19 @@ class Productivity extends Component
 
     public bool $showCompleted = false;
 
+    public bool $showSentReminders = false;
+
     public string $successMessage = '';
 
     public function updatingTab(): void
     {
         $this->resetPage();
         $this->successMessage = '';
+    }
+
+    public function updatingShowSentReminders(): void
+    {
+        $this->resetPage(pageName: 'remindersPage');
     }
 
     // — Notes actions —
@@ -180,7 +187,17 @@ class Productivity extends Component
             });
         }
 
-        $remindersQuery = $user->reminders()->orderBy('remind_at');
+        // Pending (not yet sent) reminders first, ordered by next-to-fire.
+        // Sent reminders fall to the bottom (most recently sent first) and are
+        // hidden entirely unless the user toggles them on.
+        $remindersQuery = $user->reminders();
+        if (! $this->showSentReminders) {
+            $remindersQuery->whereNull('sent_at');
+        }
+        $remindersQuery
+            ->orderByRaw('sent_at IS NULL DESC')
+            ->orderBy('remind_at')
+            ->orderByDesc('sent_at');
 
         $tasksQuery = $user->tasks();
         if (! $this->showCompleted) {

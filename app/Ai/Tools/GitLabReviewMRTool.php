@@ -79,7 +79,7 @@ class GitLabReviewMRTool extends AiTool
         $postComment = (bool) ($request['post_comment'] ?? false);
 
         try {
-            $gitlab = new GitLabService($this->user);
+            $gitlab = GitLabService::forUser($this->user);
             $mr = $gitlab->getMergeRequest($projectPath, $mrIid);
             $changes = $gitlab->getMergeRequestChanges($projectPath, $mrIid);
         } catch (RuntimeException $e) {

@@ -70,7 +70,7 @@ class GitHubPRTool extends AiTool
         }
 
         try {
-            $github = new GitHubService($this->user);
+            $github = GitHubService::forUser($this->user);
             $prs = $github->listPullRequests(
                 repo: $request['repo'] ?? null,
                 state: $request['state'] ?? 'open',

@@ -69,7 +69,7 @@ class GitHubCommitsTool extends AiTool
         }
 
         try {
-            $github = new GitHubService($this->user);
+            $github = GitHubService::forUser($this->user);
             $commits = $github->listCommits(
                 repo: $request['repo'],
                 branch: $request['branch'] ?? null,

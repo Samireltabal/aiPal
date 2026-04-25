@@ -74,7 +74,7 @@ class JiraUpdateIssueTool extends AiTool
         $actions = [];
 
         try {
-            $jira = new JiraService($this->user);
+            $jira = JiraService::forUser($this->user);
 
             $fields = [];
 
