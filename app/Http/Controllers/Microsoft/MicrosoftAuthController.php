@@ -9,6 +9,7 @@ use App\Services\MicrosoftOAuthClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MicrosoftAuthController
@@ -55,6 +56,13 @@ class MicrosoftAuthController
         $identifier = $email ?: 'primary-'.$user->id;
         $label = $email ?: 'Microsoft account';
 
+        Log::info('Microsoft OAuth callback', [
+            'user_id' => $user->id,
+            'identifier' => $identifier,
+            'profile_email' => $email,
+            'profile_keys' => array_keys($profile),
+        ]);
+
         $connection = $user->connections()
             ->where('provider', Connection::PROVIDER_MICROSOFT)
             ->where('identifier', $identifier)
@@ -66,6 +74,8 @@ class MicrosoftAuthController
             'expires_at' => $expiresAt?->toIso8601String(),
             'scopes' => $token['scope'] ?? '',
         ];
+
+        $alreadyConnected = $connection !== null;
 
         if ($connection !== null) {
             $connection->update([
@@ -97,8 +107,10 @@ class MicrosoftAuthController
             ->where('identifier', '!=', $identifier)
             ->update(['is_default' => false]);
 
+        $verb = $alreadyConnected ? 'refreshed' : 'connected';
+
         return redirect()->route('settings')
-            ->with('success', "Microsoft account {$label} connected.");
+            ->with('success', "Microsoft account {$label} {$verb}.");
     }
 
     public function disconnect(Request $request): RedirectResponse
