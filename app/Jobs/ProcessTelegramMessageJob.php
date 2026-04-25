@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Chat\ContextHintBuilder;
 use App\Services\Location\MessageLocationHandler;
 use App\Services\TelegramService;
 use App\Services\Workflow\WorkflowMessageMatcher;
@@ -81,9 +82,12 @@ class ProcessTelegramMessageJob implements ShouldQueue
             return;
         }
 
+        $contextHint = app(ContextHintBuilder::class)->build($user);
+        $basePrompt = $persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.';
+
         $agent = (new ChatAgent)
             ->withUser($user)
-            ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
+            ->withSystemPrompt($basePrompt.$contextHint);
 
         if ($user->telegram_conversation_id) {
             $user->applyConversationContext($user->telegram_conversation_id);
