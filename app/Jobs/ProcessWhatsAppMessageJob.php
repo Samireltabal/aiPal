@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\Chat\ChatAgent;
 use App\Models\User;
+use App\Services\Chat\ContextHintBuilder;
 use App\Services\Location\MessageLocationHandler;
 use App\Services\WhatsAppService;
 use App\Services\Workflow\WorkflowMessageMatcher;
@@ -82,9 +83,12 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             return;
         }
 
+        $contextHint = app(ContextHintBuilder::class)->build($user);
+        $basePrompt = $persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.';
+
         $agent = (new ChatAgent)
             ->withUser($user)
-            ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
+            ->withSystemPrompt($basePrompt.$contextHint);
 
         if ($user->whatsapp_conversation_id) {
             $user->applyConversationContext($user->whatsapp_conversation_id);
