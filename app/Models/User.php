@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'is_admin', 'briefing_enabled', 'briefing_time', 'briefing_timezone', 'briefing_last_sent_at', 'telegram_chat_id', 'telegram_conversation_id', 'whatsapp_phone', 'whatsapp_conversation_id', 'jira_host', 'jira_email', 'jira_token', 'default_reminder_channel', 'gitlab_host', 'gitlab_token', 'github_token', 'push_notifications_enabled', 'latitude', 'longitude', 'location_name', 'location_source', 'location_updated_at', 'inbound_email_token'])]
@@ -96,11 +97,69 @@ class User extends Authenticatable
     }
 
     /**
+     * Resolve a context by free-text hint — the LLM passes this from a tool
+     * argument or from a "switch context" command. Matches against slug, name
+     * (case-insensitive), or kind. Returns null if nothing matches so the
+     * caller can fall back to currentContext().
+     */
+    public function findContextByHint(string $hint): ?Context
+    {
+        $hint = trim($hint);
+        if ($hint === '') {
+            return null;
+        }
+
+        $needle = strtolower($hint);
+
+        return $this->contexts()
+            ->whereNull('archived_at')
+            ->get()
+            ->first(function (Context $ctx) use ($needle): bool {
+                return strtolower((string) $ctx->slug) === $needle
+                    || strtolower((string) $ctx->name) === $needle
+                    || strtolower((string) $ctx->kind) === $needle;
+            });
+    }
+
+    /**
+     * Pick a connection for a provider, optionally biased toward a context
+     * named/slugged like $contextHint. If the hint resolves to a context, we
+     * temporarily scope the lookup to it; otherwise we fall back to the
+     * standard pickConnection behavior driven by currentContext().
+     */
+    public function pickConnectionForHint(string $provider, ?string $contextHint): ?Connection
+    {
+        if ($contextHint === null || trim($contextHint) === '') {
+            return $this->pickConnection($provider);
+        }
+
+        $context = $this->findContextByHint($contextHint);
+        if ($context === null) {
+            return $this->pickConnection($provider);
+        }
+
+        $previous = $this->activeContext();
+        $this->setActiveContext($context);
+        try {
+            return $this->pickConnection($provider);
+        } finally {
+            $this->setActiveContext($previous);
+        }
+    }
+
+    /**
      * In-memory override so a request/job can scope context-aware tools
      * (CreateTask, CreateReminder, CreateNote, ...) to the channel's context
      * without persisting anything on the User row.
      */
     private ?Context $activeContext = null;
+
+    /**
+     * When the LLM calls switch_context mid-turn, the new context is also
+     * stored here so the chat handler can persist it onto the conversation
+     * row after streaming finishes (the conversation id is only known then).
+     */
+    private ?Context $pendingContextSwitch = null;
 
     public function setActiveContext(?Context $context): static
     {
@@ -114,6 +173,42 @@ class User extends Authenticatable
         return $this->activeContext;
     }
 
+    public function markPendingContextSwitch(Context $context): void
+    {
+        $this->pendingContextSwitch = $context;
+    }
+
+    public function pendingContextSwitch(): ?Context
+    {
+        return $this->pendingContextSwitch;
+    }
+
+    public function clearPendingContextSwitch(): void
+    {
+        $this->pendingContextSwitch = null;
+    }
+
+    /**
+     * Run $fn with $context as the active override, restoring whatever was
+     * active before. Used by integration tools when the LLM passes an explicit
+     * `context` argument to scope a single call without changing conversation
+     * state.
+     */
+    public function withActiveContext(?Context $context, callable $fn): mixed
+    {
+        if ($context === null) {
+            return $fn();
+        }
+
+        $previous = $this->activeContext;
+        $this->activeContext = $context;
+        try {
+            return $fn();
+        } finally {
+            $this->activeContext = $previous;
+        }
+    }
+
     /**
      * The context AI tools should attach to records they create.
      * Prefers an explicit per-request override, falls back to the user's default.
@@ -121,6 +216,32 @@ class User extends Authenticatable
     public function currentContext(): ?Context
     {
         return $this->activeContext ?? $this->defaultContext();
+    }
+
+    /**
+     * Pull `context_id` off the agent_conversations row (if any) and apply it
+     * as the active context so all tools called during this turn pick the
+     * matching connection. Used by chat handlers (web, WhatsApp, Telegram).
+     */
+    public function applyConversationContext(?string $conversationId): void
+    {
+        if ($conversationId === null) {
+            return;
+        }
+
+        $contextId = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->where('user_id', $this->id)
+            ->value('context_id');
+
+        if ($contextId === null) {
+            return;
+        }
+
+        $context = $this->contexts()->find($contextId);
+        if ($context !== null) {
+            $this->setActiveContext($context);
+        }
     }
 
     /**

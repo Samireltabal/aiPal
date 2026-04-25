@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\GitLabService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class GitLabMRTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
     ) {}
@@ -60,6 +63,7 @@ class GitLabMRTool extends AiTool
                 ->max(20)
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -69,6 +73,11 @@ class GitLabMRTool extends AiTool
             return 'GitLab is not connected. Please add your GitLab token in Settings.';
         }
 
+        return $this->withRequestedContext($request, fn (): Stringable|string => $this->doExecute($request));
+    }
+
+    private function doExecute(Request $request): Stringable|string
+    {
         try {
             $gitlab = GitLabService::forUser($this->user);
             $mrs = $gitlab->listMergeRequests(

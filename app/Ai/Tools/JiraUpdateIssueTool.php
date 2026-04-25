@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\JiraService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,6 +14,8 @@ use Stringable;
 
 class JiraUpdateIssueTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
     ) {}
@@ -61,6 +64,7 @@ class JiraUpdateIssueTool extends AiTool
                 ->enum(['Highest', 'High', 'Medium', 'Low', 'Lowest'])
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -70,6 +74,11 @@ class JiraUpdateIssueTool extends AiTool
             return 'Jira is not connected. Please add your Jira credentials in Settings.';
         }
 
+        return $this->withRequestedContext($request, fn (): Stringable|string => $this->doExecute($request));
+    }
+
+    private function doExecute(Request $request): Stringable|string
+    {
         $issueKey = $request['issue_key'];
         $actions = [];
 

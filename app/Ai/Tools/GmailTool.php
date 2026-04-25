@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\ResolvesContextHint;
 use App\Models\User;
 use App\Services\GmailService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -12,6 +13,8 @@ use Stringable;
 
 class GmailTool extends AiTool
 {
+    use ResolvesContextHint;
+
     public function __construct(
         private readonly User $user,
         private readonly GmailService $gmailService,
@@ -63,6 +66,7 @@ class GmailTool extends AiTool
                 ->description('For "draft": the body text of the reply to draft.')
                 ->nullable()
                 ->required(),
+            ...$this->contextSchema($schema),
         ];
     }
 
@@ -72,16 +76,18 @@ class GmailTool extends AiTool
             return 'Gmail is not connected. Please go to Settings and connect your Google account.';
         }
 
-        try {
-            return match ($request['action']) {
-                'list' => $this->listEmails($request),
-                'read' => $this->readEmail($request),
-                'draft' => $this->draftReply($request),
-                default => 'Unknown action.',
-            };
-        } catch (\Throwable $e) {
-            return 'Gmail is unavailable: '.$e->getMessage();
-        }
+        return $this->withRequestedContext($request, function () use ($request) {
+            try {
+                return match ($request['action']) {
+                    'list' => $this->listEmails($request),
+                    'read' => $this->readEmail($request),
+                    'draft' => $this->draftReply($request),
+                    default => 'Unknown action.',
+                };
+            } catch (\Throwable $e) {
+                return 'Gmail is unavailable: '.$e->getMessage();
+            }
+        });
     }
 
     private function listEmails(Request $request): string

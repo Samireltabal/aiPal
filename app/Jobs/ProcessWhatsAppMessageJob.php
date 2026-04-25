@@ -12,6 +12,7 @@ use App\Services\Workflow\WorkflowMessageMatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Transcription;
 
 class ProcessWhatsAppMessageJob implements ShouldQueue
@@ -86,10 +87,20 @@ class ProcessWhatsAppMessageJob implements ShouldQueue
             ->withSystemPrompt($persona?->system_prompt ?? 'You are a helpful personal assistant. Be concise, accurate, and friendly.');
 
         if ($user->whatsapp_conversation_id) {
+            $user->applyConversationContext($user->whatsapp_conversation_id);
             $response = $agent->continue($user->whatsapp_conversation_id, as: $user)->prompt($text);
         } else {
             $response = $agent->forUser($user)->prompt($text);
             $user->update(['whatsapp_conversation_id' => $response->conversationId]);
+        }
+
+        // Persist a switch_context call onto the conversation row.
+        if (($pending = $user->pendingContextSwitch()) !== null && $response->conversationId !== null) {
+            DB::table('agent_conversations')
+                ->where('id', $response->conversationId)
+                ->where('user_id', $user->id)
+                ->update(['context_id' => $pending->id]);
+            $user->clearPendingContextSwitch();
         }
 
         $reply = (string) $response;
