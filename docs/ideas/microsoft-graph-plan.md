@@ -59,7 +59,7 @@ MS_GRAPH_REDIRECT_URI=https://app.example.com/auth/microsoft/callback
 MS_GRAPH_TENANT=common   # 'common' | 'organizations' | 'consumers' | <tenant-id>
 ```
 
-Scopes (initial):
+Scopes (final — no `Mail.Send` per decision §9.3):
 
 ```
 offline_access
@@ -67,8 +67,6 @@ openid email profile
 Mail.Read
 Calendars.ReadWrite
 ```
-
-Add `Mail.Send` only when phase 2 ships.
 
 Routes:
 
@@ -154,27 +152,26 @@ Coverage target: same 80%+ rule as the rest of the codebase.
 | 1b    | OutlookTool (read mail) + tests                      | 1 day  |
 | 1c    | OutlookCalendarTool (read events) + tests            | 1 day  |
 | 1d    | OutlookCreateEventTool + guardrail wiring + tests    | 1 day  |
-| 2     | OutlookSendTool + Mail.Send scope                    | 0.5 d  |
-| 3     | Token-refresh background job (shared with Google)    | 1 day  |
+| 2     | Token-refresh background job (shared with Google)    | 1 day  |
 
 Phase 1 = ~4 days for a usable work-mail/calendar integration.
-Total to "feature complete v1" = ~6.5 days.
+Total to "feature complete v1" = ~5 days.
 
-## 9. Open questions for review
+## 9. Decisions (resolved 2026-04-25)
 
-1. **App registration ownership** — single Azure AD app reg with
-   multi-tenant consent, or one per deployment? (Recommendation: single
-   multi-tenant app reg, store `tenant_id` per connection.)
-2. **Personal vs work accounts** — accept both via `/common`, or restrict
-   to work via `/organizations`? (Recommendation: `/common`; the user's
-   identifier carries the distinction.)
-3. **Send mail** — needed in phase 1 or defer to phase 2? (Recommendation:
-   defer — read coverage is the unlock.)
-4. **Naming** — `OutlookTool` vs `MicrosoftMailTool`? Consistency check
-   against `GmailTool` (provider-flavored) suggests `OutlookTool`.
-5. **Webhook subscriptions** — out of scope for v1, but the Graph
-   `/subscriptions` endpoint is the right path later for push instead of
-   poll. Keep token shape forward-compatible.
+1. **App registration ownership** — *one Azure app reg per deployment.*
+   Each operator registers their own app; no shared multi-tenant reg.
+   Operators get a setup doc (`docs/microsoft-oauth-setup.md`) mirroring
+   `docs/google-oauth-setup.md`.
+2. **Account types** — *accept both personal + work.* Use the `/common`
+   authority endpoint. Identifier (UPN/email) from `/me` carries the
+   distinction; store `account_type` in metadata if useful.
+3. **Send mail** — *deferred.* `Mail.Send` scope NOT requested in any
+   phase of this plan. Read-only mail + read/write calendar only.
+4. **Tool naming** — *`OutlookTool` + `OutlookCalendarTool`.*
+   Provider-flavored, parallels `GmailTool` / `GoogleCalendarTool`.
+5. **Webhook subscriptions** — out of scope for v1; revisit when
+   real-time push is needed. Keep token shape forward-compatible.
 
 ## 10. What this doc is *not*
 
