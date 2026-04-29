@@ -86,6 +86,16 @@ class User extends Authenticatable
         return $this->hasMany(Context::class);
     }
 
+    public function people(): HasMany
+    {
+        return $this->hasMany(Person::class);
+    }
+
+    public function interactions(): HasMany
+    {
+        return $this->hasMany(Interaction::class);
+    }
+
     public function connections(): HasMany
     {
         return $this->hasMany(Connection::class);
