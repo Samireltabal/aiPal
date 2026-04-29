@@ -20,17 +20,13 @@ return [
     'allowed_methods' => ['*'],
 
     /*
-     * Browser extension origins use the chrome-extension:// scheme.
-     * Listing them in `allowed_origins_patterns` lets the extension call
-     * /api/v1/extension/* without a wildcard that also opens the API to
-     * arbitrary websites.
+     * The /api/* endpoints are bearer-token authenticated (Sanctum), so a
+     * wildcard origin is safe — a browser cannot mint a valid token.
+     * This also lets the chrome-extension:// origin reach /api/v1/extension/*.
      */
     'allowed_origins' => ['*'],
 
-    'allowed_origins_patterns' => [
-        '#^chrome-extension://[a-p]{32}$#',
-        '#^moz-extension://[0-9a-f-]{36}$#',
-    ],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 

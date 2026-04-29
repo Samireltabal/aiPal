@@ -35,6 +35,14 @@ class Chat extends Component
 
         $this->apiToken = $user->createToken('web-session')->plainTextToken;
         $this->loadConversations();
+
+        // Browser extension and other deep-link entry points pass ?prefill=...
+        // to seed the composer with page context. Truncated defensively to
+        // avoid pathological URLs.
+        $prefill = (string) request()->query('prefill', '');
+        if ($prefill !== '') {
+            $this->message = mb_substr($prefill, 0, 8000);
+        }
     }
 
     public function loadConversations(): void

@@ -22,6 +22,20 @@
                         </div>
 
                         <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Host URL</label>
+                            <div class="flex gap-2">
+                                <input type="text" readonly value="{{ $hostUrl }}"
+                                       class="flex-1 font-mono text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"
+                                       onclick="this.select()">
+                                <button type="button"
+                                        onclick="navigator.clipboard.writeText('{{ $hostUrl }}')"
+                                        class="px-3 py-2 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
                             <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Token</label>
                             <div class="flex gap-2">
                                 <input type="text" readonly value="{{ $generatedToken }}"
@@ -35,17 +49,10 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">One-click connect</label>
-                            <a href="{{ $connectLink }}"
-                               class="inline-block px-3 py-2 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
-                                Connect extension
-                            </a>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Requires the aiPal extension to be installed; it registers the
-                                <code>aipal-ext://</code> protocol handler.
-                            </p>
-                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Open the extension's <strong>Options</strong> page (puzzle-piece
+                            menu → aiPal → Options) and paste the host URL and token to connect.
+                        </p>
                     </div>
                 @else
                     <button type="button" wire:click="generate"

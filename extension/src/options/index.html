@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>aiPal — Options</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>aiPal</h1>
+      <p class="lede">Connect this extension to your self-hosted aiPal instance.</p>
+
+      <form id="form">
+        <label>
+          aiPal host URL
+          <input id="host" type="url" placeholder="https://aipal.example.com" required />
+        </label>
+        <label>
+          Extension token
+          <input id="token" type="password" placeholder="Generated at /settings/extension" required />
+          <small>Visit your aiPal instance → Settings → Browser Extension to generate one.</small>
+        </label>
+        <label class="checkbox">
+          <input id="syncStorage" type="checkbox" checked />
+          Sync this connection across my Chrome profile
+        </label>
+        <button type="submit" id="connect">Connect</button>
+      </form>
+
+      <div id="status"></div>
+
+      <div id="connected" class="hidden">
+        <h2>Connected</h2>
+        <p>Connected to <strong id="connected-host"></strong> as <strong id="connected-user"></strong>.</p>
+        <button id="disconnect" class="ghost">Disconnect</button>
+      </div>
+    </div>
+    <script type="module" src="./index.ts"></script>
+  </body>
+</html>

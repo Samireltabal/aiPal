@@ -16,7 +16,12 @@ class Extension extends Component
 {
     public ?string $generatedToken = null;
 
-    public ?string $connectLink = null;
+    public string $hostUrl = '';
+
+    public function mount(): void
+    {
+        $this->hostUrl = rtrim(URL::to('/'), '/');
+    }
 
     public function generate(): void
     {
@@ -27,10 +32,7 @@ class Extension extends Component
         // prevents stale leaked tokens from accumulating in chrome.storage.sync.
         $this->revokeExistingExtensionTokens($user);
 
-        $token = $user->createToken('extension', ['extension'])->plainTextToken;
-
-        $this->generatedToken = $token;
-        $this->connectLink = $this->buildConnectLink($token);
+        $this->generatedToken = $user->createToken('extension', ['extension'])->plainTextToken;
     }
 
     public function revoke(int $tokenId): void
@@ -41,7 +43,6 @@ class Extension extends Component
         $user->tokens()->where('id', $tokenId)->where('name', 'extension')->delete();
 
         $this->generatedToken = null;
-        $this->connectLink = null;
     }
 
     public function render(): View
@@ -61,12 +62,5 @@ class Extension extends Component
     private function revokeExistingExtensionTokens(User $user): void
     {
         $user->tokens()->where('name', 'extension')->delete();
-    }
-
-    private function buildConnectLink(string $token): string
-    {
-        $host = rtrim(URL::to('/'), '/');
-
-        return 'aipal-ext://connect?host='.urlencode($host).'&token='.urlencode($token);
     }
 }

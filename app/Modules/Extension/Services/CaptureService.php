@@ -72,7 +72,7 @@ class CaptureService
             'context_id' => $contextId,
             'title' => $title,
             'description' => $description,
-            'priority' => 'normal',
+            'priority' => 'medium',
         ]);
     }
 

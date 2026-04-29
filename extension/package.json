@@ -1,0 +1,19 @@
+{
+  "name": "aipal-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "aiPal browser extension — capture pages, selections, and ideas into your self-hosted aiPal.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "zip": "cd dist && zip -r ../aipal-extension.zip ."
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.25",
+    "@types/chrome": "^0.0.270",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10"
+  },
+  "dependencies": {}
+}
