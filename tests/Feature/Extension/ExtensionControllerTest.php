@@ -10,8 +10,10 @@ use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\EmbeddingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\TestCase;
 
 class ExtensionControllerTest extends TestCase
@@ -19,6 +21,15 @@ class ExtensionControllerTest extends TestCase
     use RefreshDatabase;
 
     private const ABILITY = 'extension';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $mock = Mockery::mock(EmbeddingService::class);
+        $mock->allows('embedText')->andReturn(array_fill(0, 1536, 0.0));
+        $this->app->instance(EmbeddingService::class, $mock);
+    }
 
     public function test_ping_requires_authentication(): void
     {

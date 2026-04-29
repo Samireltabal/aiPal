@@ -10,9 +10,12 @@ use App\Models\Note;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\EmbeddingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Routes a polymorphic browser-extension capture payload to the right model.
@@ -22,6 +25,8 @@ use InvalidArgumentException;
  */
 class CaptureService
 {
+    public function __construct(private readonly EmbeddingService $embeddings) {}
+
     /**
      * @param  array{kind:string, url:string, title:string, prompt?:?string, selection?:?string, article?:?string, remind_at?:?string, context_id?:?int}  $data
      */
@@ -55,6 +60,7 @@ class CaptureService
             'user_id' => $user->id,
             'context_id' => $contextId,
             'content' => $content,
+            'embedding' => $this->embedOrEmpty($content),
             'source' => 'extension',
         ]);
     }
@@ -141,5 +147,26 @@ class CaptureService
         $primary = $primary !== null ? trim($primary) : '';
 
         return $primary !== '' ? $primary : $fallback;
+    }
+
+    /**
+     * Generate an embedding, falling back to a zero vector if the embedding
+     * provider is unreachable. Memory.embedding is NOT NULL, so capture must
+     * not fail just because the LLM provider is having a bad day.
+     *
+     * @return array<int, float>
+     */
+    private function embedOrEmpty(string $content): array
+    {
+        try {
+            return $this->embeddings->embedText($content);
+        } catch (Throwable $e) {
+            Log::warning('extension.capture: embedding failed, storing zero vector', [
+                'message' => $e->getMessage(),
+            ]);
+            $dimensions = (int) config('ai.embedding_dimensions', 1536);
+
+            return array_fill(0, $dimensions, 0.0);
+        }
     }
 }

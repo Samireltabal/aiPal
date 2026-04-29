@@ -5,6 +5,7 @@ import {
   type CaptureKind,
   type ContextSummary,
 } from '../lib/api';
+import { extractFromPage, type Extracted } from '../content/extractor';
 import { loadConnection } from '../lib/storage';
 
 type Tab = 'ask' | 'memory' | 'task' | 'note';
@@ -66,11 +67,14 @@ function render(): void {
 
   const ctx = state.contexts.find(c => c.id === state.contextId);
 
+  const noPage = !state.pageUrl || !/^https?:/.test(state.pageUrl);
+
   root.innerHTML = `
     <div class="header">
       <strong>aiPal</strong>
       <span class="ctx">${ctx ? `→ ${escape(ctx.name)}` : 'no context'}</span>
     </div>
+    ${noPage ? `<div class="toast err">aiPal can't capture from internal pages (chrome://, new tab, store). Open a regular website first.</div>` : ''}
     <div class="tabs">
       ${(['ask', 'memory', 'task', 'note'] as Tab[])
         .map(t => `<button data-tab="${t}" class="${state.tab === t ? 'active' : ''}">${labelFor(t)}</button>`)
@@ -226,14 +230,30 @@ async function init(): Promise<void> {
     return;
   }
 
-  // Ask background to extract the active tab; fall back gracefully if unavailable.
-  const extracted = await chrome.runtime.sendMessage({ type: 'extract-active-tab' }).catch(() => null);
-  if (extracted) {
-    state.pageTitle = extracted.title ?? '';
-    state.pageUrl = extracted.url ?? '';
-    state.selection = extracted.selection ?? '';
-    state.article = extracted.article ?? '';
-    state.useSelectionOnly = !!extracted.selection;
+  // Query the active tab directly — popup has activeTab grant from the user click.
+  // Use tab.url/title as guaranteed fallbacks; executeScript only adds selection/article.
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab?.url) {
+      state.pageUrl = tab.url;
+      state.pageTitle = tab.title ?? tab.url;
+    }
+    if (tab?.id && tab.url && /^https?:/.test(tab.url)) {
+      const [{ result } = { result: null }] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: extractFromPage,
+      });
+      const extracted = result as Extracted | null;
+      if (extracted) {
+        state.pageTitle = extracted.title || state.pageTitle;
+        state.pageUrl = extracted.url || state.pageUrl;
+        state.selection = extracted.selection ?? '';
+        state.article = extracted.article ?? '';
+        state.useSelectionOnly = !!extracted.selection;
+      }
+    }
+  } catch (e) {
+    console.warn('[aiPal] extract failed', e);
   }
 
   state.loading = false;
