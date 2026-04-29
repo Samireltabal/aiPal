@@ -23,6 +23,7 @@ use App\Livewire\Memories;
 use App\Livewire\Onboarding;
 use App\Livewire\Productivity;
 use App\Livewire\Settings;
+use App\Livewire\Settings\Extension;
 use App\Livewire\Usage;
 use App\Livewire\Workflows;
 use Illuminate\Support\Facades\Auth;
@@ -84,6 +85,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/voice/tts', TtsController::class)->name('voice.tts');
         Route::get('/settings', Settings::class)->name('settings');
         Route::get('/settings/contexts', Contexts::class)->name('contexts');
+        Route::get('/settings/extension', Extension::class)->name('settings.extension');
         Route::get('/usage', Usage::class)->name('usage');
         Route::get('/memories', Memories::class)->name('memories');
         Route::get('/documents', Documents::class)->name('documents');

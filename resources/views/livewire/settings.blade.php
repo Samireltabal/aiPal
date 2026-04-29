@@ -753,8 +753,25 @@
                 </div>
             </div>
 
-            {{-- Link to Usage & Models page --}}
+            {{-- Link to Browser Extension settings --}}
             <div class="mt-8">
+                <a href="{{ route('settings.extension') }}"
+                   class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Browser Extension</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Generate a token to connect the aiPal Chrome extension.</p>
+                            </div>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Link to Usage & Models page --}}
+            <div class="mt-4">
                 <a href="{{ route('usage') }}"
                    class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
                     <div class="flex items-center justify-between gap-4">
