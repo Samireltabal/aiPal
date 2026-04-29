@@ -2,6 +2,7 @@ services:
   app:
     volumes:
       - ./app:/var/www/html/app
+      - ./bootstrap:/var/www/html/bootstrap
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
@@ -12,6 +13,7 @@ services:
   horizon:
     volumes:
       - ./app:/var/www/html/app
+      - ./bootstrap:/var/www/html/bootstrap
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
@@ -21,6 +23,7 @@ services:
   scheduler:
     volumes:
       - ./app:/var/www/html/app
+      - ./bootstrap:/var/www/html/bootstrap
       - ./config:/var/www/html/config
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage

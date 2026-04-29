@@ -56,6 +56,7 @@ All tools can be enabled/disabled per user in Settings:
 - **Multi-user** — invite-only (admin generates signed invite links), each user has isolated memory and persona
 - **REST API** with personal access tokens (Sanctum)
 - **Horizon** dashboard for queue monitoring
+- **Browser extension** (Chrome/Chromium) — capture pages, selections, tasks, notes, reminders to your aiPal in one click. See [`extension/README.md`](extension/README.md).
 - Fully self-hostable — no cloud accounts required beyond an AI provider key
 
 ---

@@ -109,6 +109,26 @@ document.addEventListener('alpine:init', () => {
         currentAudio: null,
 
         init() {
+            // Browser-extension "Ask" links open /chat?prefill=<encoded message>.
+            // Seed the composer once and strip the param so a refresh doesn't repeat it.
+            const params = new URLSearchParams(window.location.search);
+            const prefill = params.get('prefill');
+            if (prefill) {
+                this.input = prefill.slice(0, 8000);
+                params.delete('prefill');
+                const newSearch = params.toString();
+                const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+                window.history.replaceState({}, '', newUrl);
+                this.$nextTick(() => {
+                    const el = this.$refs.messageInput;
+                    if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                        el.focus();
+                    }
+                });
+            }
+
             this.$watch('activeConversationId', (id) => {
                 if (this.streaming) return;
                 if (id) {
