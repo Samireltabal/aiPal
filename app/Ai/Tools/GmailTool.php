@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace App\Ai\Tools;
 
 use App\Ai\Tools\Concerns\ResolvesContextHint;
+use App\Models\Interaction;
 use App\Models\User;
+use App\Modules\People\Services\InteractionRecorder;
+use App\Modules\People\Services\PersonResolver;
 use App\Services\GmailService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Tools\Request;
 use Stringable;
+use Throwable;
 
 class GmailTool extends AiTool
 {
@@ -18,6 +23,8 @@ class GmailTool extends AiTool
     public function __construct(
         private readonly User $user,
         private readonly GmailService $gmailService,
+        private readonly PersonResolver $people,
+        private readonly InteractionRecorder $interactions,
     ) {}
 
     public static function toolName(): string
@@ -84,7 +91,7 @@ class GmailTool extends AiTool
                     'draft' => $this->draftReply($request),
                     default => 'Unknown action.',
                 };
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 return 'Gmail is unavailable: '.$e->getMessage();
             }
         });
@@ -147,6 +154,32 @@ class GmailTool extends AiTool
             body: $replyBody,
         );
 
+        $this->capturePersonInteraction($original['from'], 'Re: '.$original['subject'], $replyBody, $draftId);
+
         return "Draft created (ID: {$draftId}). It is saved in your Gmail Drafts folder — review and send it from Gmail when ready.";
+    }
+
+    private function capturePersonInteraction(string $to, string $subject, string $body, string $draftId): void
+    {
+        try {
+            $person = $this->people->fromEmail($this->user, $to);
+            if ($person === null) {
+                return;
+            }
+
+            $this->interactions->record($person, [
+                'channel' => Interaction::CHANNEL_EMAIL,
+                'direction' => Interaction::DIRECTION_OUTBOUND,
+                'subject' => $subject,
+                'raw_excerpt' => $body,
+                'external_id' => 'gmail-draft:'.$draftId,
+                'metadata' => ['draft' => true, 'draft_id' => $draftId, 'to' => $to],
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('GmailTool: CRM capture failed', [
+                'user_id' => $this->user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

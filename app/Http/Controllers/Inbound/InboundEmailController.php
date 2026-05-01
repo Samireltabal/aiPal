@@ -6,7 +6,10 @@ namespace App\Http\Controllers\Inbound;
 
 use App\Http\Controllers\Controller;
 use App\Models\Context;
+use App\Models\Interaction;
 use App\Models\User;
+use App\Modules\People\Services\InteractionRecorder;
+use App\Modules\People\Services\PersonResolver;
 use App\Services\ForwardedEmailProcessor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,11 +17,16 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Throwable;
 
 class InboundEmailController extends Controller
 {
-    public function __invoke(Request $request, ForwardedEmailProcessor $processor): JsonResponse
-    {
+    public function __invoke(
+        Request $request,
+        ForwardedEmailProcessor $processor,
+        PersonResolver $people,
+        InteractionRecorder $interactions,
+    ): JsonResponse {
         if (! $this->verifyHmac($request)) {
             return response()->json(['error' => 'invalid signature'], Response::HTTP_UNAUTHORIZED);
         }
@@ -54,6 +62,28 @@ class InboundEmailController extends Controller
         }
 
         $confirmation = $processor->process($user, $context, $subject, $body, $from);
+
+        // Record the sender as a Person + log an inbound interaction. Best-effort;
+        // any failure here should never break the inbound-email pipeline.
+        try {
+            $person = $people->fromEmail($user, $from, $context->id);
+            if ($person !== null) {
+                $messageId = is_string($data['message_id'] ?? null) ? $data['message_id'] : null;
+                $interactions->record($person, [
+                    'channel' => Interaction::CHANNEL_EMAIL,
+                    'direction' => Interaction::DIRECTION_INBOUND,
+                    'subject' => $subject,
+                    'raw_excerpt' => $body,
+                    'external_id' => $messageId,
+                    'metadata' => ['from' => $from],
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('Inbound email: CRM capture failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         $this->replyConfirmation($user, $subject, $confirmation, $from);
 
@@ -223,7 +253,7 @@ class InboundEmailController extends Controller
             Mail::raw($confirmation, function ($message) use ($replyTo, $subject): void {
                 $message->to($replyTo)->subject('aiPal — '.($subject !== '' ? $subject : 'forwarded email'));
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('Inbound email confirmation reply failed', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
