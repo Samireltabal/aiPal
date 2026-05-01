@@ -38,3 +38,5 @@ Schedule::command('reminders:dispatch')->everyMinute();
 Schedule::command('workflows:dispatch-due')->everyMinute()->withoutOverlapping();
 
 Schedule::command('connections:refresh-tokens')->everyFiveMinutes()->withoutOverlapping();
+
+Schedule::command('people:birthday-check')->dailyAt('07:00')->withoutOverlapping();

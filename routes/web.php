@@ -21,6 +21,8 @@ use App\Livewire\Dashboard;
 use App\Livewire\Documents;
 use App\Livewire\Memories;
 use App\Livewire\Onboarding;
+use App\Livewire\People;
+use App\Livewire\PersonDetail;
 use App\Livewire\Productivity;
 use App\Livewire\Settings;
 use App\Livewire\Settings\Extension;
@@ -90,6 +92,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/memories', Memories::class)->name('memories');
         Route::get('/documents', Documents::class)->name('documents');
         Route::get('/productivity', Productivity::class)->name('productivity');
+        Route::get('/people', People::class)->name('people');
+        Route::get('/people/{id}', PersonDetail::class)->whereNumber('id')->name('people.show');
         Route::get('/workflows', Workflows::class)->name('workflows');
         Route::get('/memories/export', function () {
             $user = Auth::user();

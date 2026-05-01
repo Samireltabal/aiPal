@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Models\User;
+use App\Modules\People\Services\ContactStaleness;
 use App\Services\GmailService;
 use App\Services\GoogleCalendarService;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,10 @@ class Dashboard extends Component
 
     public string $activeModel = '';
 
+    public int $staleContactsCount = 0;
+
+    public array $staleContacts = [];
+
     public function mount(): void
     {
         /** @var User $user */
@@ -73,6 +78,22 @@ class Dashboard extends Component
         $this->loadTasks($user);
         $this->loadReminders($user);
         $this->loadStats($user);
+        $this->loadStaleContacts($user);
+    }
+
+    private function loadStaleContacts(User $user): void
+    {
+        $service = app(ContactStaleness::class);
+        $this->staleContactsCount = $service->count($user);
+        $this->staleContacts = $service->query($user)
+            ->limit(5)
+            ->get(['id', 'display_name', 'last_contact_at'])
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'display_name' => $p->display_name,
+                'last_contact' => $p->last_contact_at?->diffForHumans() ?? 'never',
+            ])
+            ->toArray();
     }
 
     public function fetchEmails(): void

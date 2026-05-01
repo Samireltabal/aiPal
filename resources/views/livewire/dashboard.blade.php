@@ -123,6 +123,36 @@
                 </div>
             </div>
 
+            {{-- Stale contacts --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">People to reconnect with</h2>
+                    </div>
+                    @if ($staleContactsCount > 0)
+                        <span class="text-xs text-rose-500">{{ $staleContactsCount }} stale</span>
+                    @endif
+                </div>
+                <div class="divide-y divide-gray-50 dark:divide-gray-700">
+                    @forelse ($staleContacts as $contact)
+                        <a href="{{ route('people.show', $contact['id']) }}" class="block px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                            <p class="text-sm text-gray-800 dark:text-gray-200 truncate">{{ $contact['display_name'] }}</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">last contact {{ $contact['last_contact'] }}</p>
+                        </a>
+                    @empty
+                        <div class="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                            All caught up — no stale contacts.
+                        </div>
+                    @endforelse
+                </div>
+                <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
+                    <a href="{{ route('people', ['stale' => 1]) }}" class="text-xs text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400">
+                        See all people →
+                    </a>
+                </div>
+            </div>
+
             {{-- Gmail --}}
             <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
