@@ -263,6 +263,35 @@ class PeopleLivewireTest extends TestCase
             ->assertSet('reminderTitle', 'Follow up with Sara Connor');
     }
 
+    public function test_suggested_tags_excludes_current_tags(): void
+    {
+        $user = $this->user();
+        Person::factory()->for($user)->create(['tags' => ['friend', 'work']]);
+        Person::factory()->for($user)->create(['tags' => ['customer']]);
+        $person = Person::factory()->for($user)->create(['tags' => ['friend']]);
+
+        Livewire::actingAs($user)
+            ->test(PersonDetail::class, ['id' => $person->id])
+            ->assertViewHas('suggestedTags', function (array $tags): bool {
+                sort($tags);
+
+                return $tags === ['customer', 'work'];
+            });
+    }
+
+    public function test_add_tag_appends_to_input(): void
+    {
+        $user = $this->user();
+        $person = Person::factory()->for($user)->create(['tags' => ['friend']]);
+
+        Livewire::actingAs($user)
+            ->test(PersonDetail::class, ['id' => $person->id])
+            ->call('addTag', 'work')
+            ->assertSet('tagsInput', 'friend, work')
+            ->call('addTag', 'work')
+            ->assertSet('tagsInput', 'friend, work');
+    }
+
     public function test_productivity_ignores_other_users_person_id(): void
     {
         $userA = $this->user();

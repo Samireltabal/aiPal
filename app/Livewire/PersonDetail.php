@@ -206,6 +206,45 @@ class PersonDetail extends Component
         $this->redirect(route('people'), navigate: true);
     }
 
+    public function addTag(string $tag): void
+    {
+        $tag = trim($tag);
+        if ($tag === '') {
+            return;
+        }
+
+        $existing = collect(explode(',', $this->tagsInput))
+            ->map(fn (string $t) => trim($t))
+            ->filter()
+            ->values()
+            ->all();
+
+        if (in_array($tag, $existing, true)) {
+            return;
+        }
+
+        $existing[] = $tag;
+        $this->tagsInput = implode(', ', $existing);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function suggestedTags(array $currentTags): array
+    {
+        $userTags = Person::query()
+            ->where('user_id', Auth::id())
+            ->whereNotNull('tags')
+            ->pluck('tags')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return array_values(array_diff($userTags, $currentTags));
+    }
+
     public function render(): View
     {
         $person = $this->loadPerson($this->personId);
@@ -222,12 +261,19 @@ class PersonDetail extends Component
             ? 'https://www.gravatar.com/avatar/'.md5(strtolower(trim($primaryEmail))).'?d=mp&s=120'
             : null;
 
+        $currentTags = collect(explode(',', $this->tagsInput))
+            ->map(fn (string $t) => trim($t))
+            ->filter()
+            ->values()
+            ->all();
+
         return view('livewire.person-detail', [
             'person' => $person,
             'interactions' => $interactions,
             'avatarUrl' => $person->photo_url ?: $gravatar,
             'channels' => Interaction::CHANNELS,
             'directions' => Interaction::DIRECTIONS,
+            'suggestedTags' => $this->suggestedTags($currentTags),
         ]);
     }
 }

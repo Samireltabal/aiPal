@@ -74,11 +74,24 @@
                         <input wire:model="birthday" type="date"
                             class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     </label>
-                    <label class="block md:col-span-2">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Tags (comma-separated)</span>
-                        <input wire:model="tagsInput" type="text" placeholder="friend, work, customer"
-                            class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    </label>
+                    <div class="block md:col-span-2">
+                        <label class="block">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Tags (comma-separated)</span>
+                            <input wire:model="tagsInput" type="text" placeholder="friend, work, customer"
+                                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        </label>
+                        @if (! empty($suggestedTags))
+                            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                <span class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Suggestions:</span>
+                                @foreach ($suggestedTags as $suggested)
+                                    <button type="button" wire:click="addTag(@js($suggested))"
+                                        class="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition">
+                                        + {{ $suggested }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                     <label class="block md:col-span-2">
                         <span class="text-xs text-gray-500 dark:text-gray-400">Notes</span>
                         <textarea wire:model="notes" rows="3"
