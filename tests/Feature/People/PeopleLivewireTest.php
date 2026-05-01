@@ -6,6 +6,7 @@ namespace Tests\Feature\People;
 
 use App\Livewire\People;
 use App\Livewire\PersonDetail;
+use App\Livewire\Productivity;
 use App\Models\Interaction;
 use App\Models\Person;
 use App\Models\Persona;
@@ -248,5 +249,29 @@ class PeopleLivewireTest extends TestCase
         Livewire::actingAs($user)
             ->test(PersonDetail::class, ['id' => $person->id])
             ->assertSee('Important meeting');
+    }
+
+    public function test_productivity_prefills_follow_up_from_person_id(): void
+    {
+        $user = $this->user();
+        $person = Person::factory()->for($user)->create(['display_name' => 'Sara Connor']);
+
+        Livewire::actingAs($user)
+            ->withQueryParams(['reminder_for_person' => $person->id])
+            ->test(Productivity::class)
+            ->assertSet('tab', 'reminders')
+            ->assertSet('reminderTitle', 'Follow up with Sara Connor');
+    }
+
+    public function test_productivity_ignores_other_users_person_id(): void
+    {
+        $userA = $this->user();
+        $userB = $this->user();
+        $person = Person::factory()->for($userB)->create();
+
+        Livewire::actingAs($userA)
+            ->withQueryParams(['reminder_for_person' => $person->id])
+            ->test(Productivity::class)
+            ->assertSet('reminderTitle', '');
     }
 }
