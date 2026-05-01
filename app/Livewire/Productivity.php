@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Models\Note;
+use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\Task;
 use App\Services\EmbeddingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,6 +23,24 @@ class Productivity extends Component
     use WithPagination;
 
     public string $tab = 'tasks';
+
+    #[Url(as: 'reminder_for_person', except: 0)]
+    public int $reminderForPerson = 0;
+
+    public function mount(): void
+    {
+        if ($this->reminderForPerson > 0) {
+            $person = Person::query()
+                ->where('user_id', Auth::id())
+                ->find($this->reminderForPerson);
+
+            if ($person !== null) {
+                $this->tab = 'reminders';
+                $this->reminderTitle = "Follow up with {$person->display_name}";
+                $this->reminderAt = now()->addDays(7)->setTime(9, 0)->format('Y-m-d\TH:i');
+            }
+        }
+    }
 
     // — Notes —
     public string $noteTitle = '';

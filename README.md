@@ -33,6 +33,7 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 - **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
 - **Tasks** — create, prioritize, and complete tasks by chatting
 - **Daily briefing** — morning summary of your day via email, configurable time and timezone
+- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.)
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
@@ -50,7 +51,7 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 ### AI Tools (pluggable)
 All tools can be enabled/disabled per user in Settings:
-`SearchKnowledgeBase` · `CreateNote` · `SearchNotes` · `CreateReminder` · `CreateTask` · `ListTasks` · `GoogleCalendar` · `Gmail` · `JiraSearch` · `JiraCreateIssue` · `JiraUpdateIssue` · `GitLabMR` · `GitLabCreateIssue` · `GitLabCommits` · `CodeReview` · `MeetingNotes` · `TerminalHelper`
+`SearchKnowledgeBase` · `CreateNote` · `SearchNotes` · `CreateReminder` · `CreateTask` · `ListTasks` · `GoogleCalendar` · `Gmail` · `JiraSearch` · `JiraCreateIssue` · `JiraUpdateIssue` · `GitLabMR` · `GitLabCreateIssue` · `GitLabCommits` · `CodeReview` · `MeetingNotes` · `TerminalHelper` · `FindPerson` · `ListPeople` · `CreatePerson` · `UpdatePerson` · `LogInteraction` · `RecentInteractions` · `FindStaleContacts`
 
 ### Platform
 - **Multi-user** — invite-only (admin generates signed invite links), each user has isolated memory and persona

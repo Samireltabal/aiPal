@@ -23,6 +23,8 @@ return [
 
     'staleness_days' => 90,
 
+    'birthday_lookahead_days' => env('PEOPLE_BIRTHDAY_LOOKAHEAD_DAYS', 7),
+
     'summarize' => [
         'enabled' => env('PEOPLE_SUMMARIZE_ENABLED', true),
         'provider' => env('PEOPLE_SUMMARIZE_PROVIDER'),
