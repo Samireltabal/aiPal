@@ -15,6 +15,7 @@
                 <img src="{{ asset('storage/'.auth()->user()->persona->avatar_path) }}" alt="Avatar" class="w-6 h-6 rounded-full object-cover">
             @endif
             <span class="font-semibold text-sm text-gray-900 dark:text-white">aiPal</span>
+            <x-premium-badge />
         </div>
         <button onclick="Alpine.store('theme').toggle()"
             class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -51,6 +52,7 @@
                     <img src="{{ asset('storage/'.auth()->user()->persona->avatar_path) }}" alt="Avatar" class="w-7 h-7 rounded-full object-cover">
                 @endif
                 <span class="font-semibold text-sm">aiPal</span>
+                <x-premium-badge />
             </div>
             <div class="flex items-center gap-1">
                 <button onclick="Alpine.store('theme').toggle()"
