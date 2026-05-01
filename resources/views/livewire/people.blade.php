@@ -5,10 +5,20 @@
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-6">
                 <h1 class="text-xl font-semibold text-gray-900 dark:text-white">People</h1>
-                <button wire:click="toggleAddForm"
-                    class="px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
-                    {{ $showAddForm ? 'Cancel' : '+ Add person' }}
-                </button>
+                <div class="flex items-center gap-2">
+                    <button wire:click="exportCsv"
+                        class="px-3 py-1.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Export CSV
+                    </button>
+                    <button wire:click="exportJson"
+                        class="px-3 py-1.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Export JSON
+                    </button>
+                    <button wire:click="toggleAddForm"
+                        class="px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                        {{ $showAddForm ? 'Cancel' : '+ Add person' }}
+                    </button>
+                </div>
             </div>
 
             @if ($successMessage)
@@ -76,11 +86,77 @@
                     @endif
                 </div>
             @else
+                @php $selectedCount = count(array_filter($selected)); @endphp
+                @if ($selectedCount > 0)
+                    <div class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 text-sm">
+                        <span class="text-indigo-700 dark:text-indigo-300">
+                            {{ $selectedCount }} selected
+                        </span>
+                        <input wire:model="bulkTag" type="text" placeholder="tag to apply"
+                            class="flex-1 min-w-[8rem] rounded-md border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <button wire:click="applyBulkTag"
+                            class="px-2.5 py-1 text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                            Apply tag
+                        </button>
+                        @if ($selectedCount === 2)
+                            <button wire:click="startMerge"
+                                class="px-2.5 py-1 text-xs font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700">
+                                Merge
+                            </button>
+                        @endif
+                        <button wire:click="clearSelection"
+                            class="px-2.5 py-1 text-xs font-medium rounded-md text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                            Clear
+                        </button>
+                    </div>
+                @endif
+
+                @if ($mergePrimaryId > 0 && $selectedCount === 2)
+                    <div class="mb-3 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm">
+                        <p class="text-rose-700 dark:text-rose-300 font-medium">Merge two people</p>
+                        <p class="text-xs text-rose-600 dark:text-rose-400 mt-1">
+                            The duplicate's emails, phones, interactions, and tags are moved into the primary. The duplicate is then soft-deleted.
+                        </p>
+                        <div class="mt-2 space-y-1.5">
+                            @foreach ($selectedPeople as $sp)
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" wire:click="setMergePrimary({{ $sp->id }})"
+                                        @checked($mergePrimaryId === $sp->id)
+                                        class="text-rose-600 focus:ring-rose-500">
+                                    <span class="text-sm text-gray-900 dark:text-white">{{ $sp->display_name }}</span>
+                                    @if ($sp->company)
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">· {{ $sp->company }}</span>
+                                    @endif
+                                    @if ($mergePrimaryId === $sp->id)
+                                        <span class="text-xs text-rose-700 dark:text-rose-300">primary</span>
+                                    @endif
+                                </label>
+                            @endforeach
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <button wire:click="confirmMerge"
+                                wire:confirm="Merge these two people? This soft-deletes the duplicate."
+                                class="px-3 py-1 text-xs font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700">
+                                Confirm merge
+                            </button>
+                            <button wire:click="cancelMerge"
+                                class="px-3 py-1 text-xs font-medium rounded-md text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                @endif
                 <div class="space-y-2">
                     @foreach ($people as $person)
                         @php $primaryEmail = $person->emails->first()?->email; @endphp
-                        <a href="{{ route('people.show', $person->id) }}" wire:key="person-{{ $person->id }}"
-                            class="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                        <div wire:key="person-{{ $person->id }}"
+                            class="flex items-stretch gap-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                            <label class="flex items-center pl-1 pr-2 -my-3 cursor-pointer">
+                                <input type="checkbox" wire:model.live="selected.{{ $person->id }}"
+                                    class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                            </label>
+                            <a href="{{ route('people.show', $person->id) }}"
+                                class="flex-1 -my-3 py-3">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -109,7 +185,8 @@
                                     @endif
                                 </div>
                             </div>
-                        </a>
+                            </a>
+                        </div>
                     @endforeach
                 </div>
                 <div class="mt-4">{{ $people->links() }}</div>

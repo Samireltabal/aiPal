@@ -251,6 +251,98 @@ class PeopleLivewireTest extends TestCase
             ->assertSee('Important meeting');
     }
 
+    public function test_export_csv_returns_download(): void
+    {
+        $user = $this->user();
+        Person::factory()->for($user)->create(['display_name' => 'Sara Connor', 'company' => 'Acme']);
+
+        $component = Livewire::actingAs($user)
+            ->test(People::class)
+            ->call('exportCsv');
+
+        $component->assertFileDownloaded();
+    }
+
+    public function test_export_json_returns_download(): void
+    {
+        $user = $this->user();
+        Person::factory()->for($user)->create(['display_name' => 'Sara Connor']);
+
+        Livewire::actingAs($user)
+            ->test(People::class)
+            ->call('exportJson')
+            ->assertFileDownloaded();
+    }
+
+    public function test_bulk_tag_applies_to_selected_people(): void
+    {
+        $user = $this->user();
+        $a = Person::factory()->for($user)->create(['tags' => []]);
+        $b = Person::factory()->for($user)->create(['tags' => ['existing']]);
+        $skipped = Person::factory()->for($user)->create(['tags' => []]);
+
+        Livewire::actingAs($user)
+            ->test(People::class)
+            ->set('selected', [$a->id => true, $b->id => true])
+            ->set('bulkTag', 'vip')
+            ->call('applyBulkTag');
+
+        $this->assertSame(['vip'], $a->fresh()->tags);
+        $this->assertSame(['existing', 'vip'], $b->fresh()->tags);
+        $this->assertSame([], $skipped->fresh()->tags);
+    }
+
+    public function test_bulk_tag_skips_duplicates(): void
+    {
+        $user = $this->user();
+        $person = Person::factory()->for($user)->create(['tags' => ['vip']]);
+
+        Livewire::actingAs($user)
+            ->test(People::class)
+            ->set('selected', [$person->id => true])
+            ->set('bulkTag', 'vip')
+            ->call('applyBulkTag');
+
+        $this->assertSame(['vip'], $person->fresh()->tags);
+    }
+
+    public function test_merge_consolidates_two_people(): void
+    {
+        $user = $this->user();
+        $primary = Person::factory()->for($user)->create([
+            'display_name' => 'Sara Connor',
+            'company' => 'Skynet',
+            'tags' => ['friend'],
+            'last_contact_at' => now()->subDays(10),
+        ]);
+        $duplicate = Person::factory()->for($user)->create([
+            'display_name' => 'Sara C.',
+            'company' => null,
+            'title' => 'Resistance Leader',
+            'tags' => ['work'],
+            'last_contact_at' => now()->subDays(2),
+        ]);
+        PersonEmail::create(['user_id' => $user->id, 'person_id' => $primary->id, 'email' => 'a@x.test', 'is_primary' => true]);
+        PersonEmail::create(['user_id' => $user->id, 'person_id' => $duplicate->id, 'email' => 'b@x.test', 'is_primary' => true]);
+        Interaction::factory()->create(['user_id' => $user->id, 'person_id' => $duplicate->id, 'subject' => 'old chat']);
+
+        Livewire::actingAs($user)
+            ->test(People::class)
+            ->set('selected', [$primary->id => true, $duplicate->id => true])
+            ->call('startMerge')
+            ->call('setMergePrimary', $primary->id)
+            ->call('confirmMerge');
+
+        $primary->refresh();
+        $this->assertSame('Resistance Leader', $primary->title); // backfilled
+        $this->assertSame('Skynet', $primary->company);          // kept
+        $this->assertEqualsCanonicalizing(['friend', 'work'], $primary->tags);
+        $this->assertSoftDeleted('people', ['id' => $duplicate->id]);
+        $this->assertDatabaseHas('person_emails', ['person_id' => $primary->id, 'email' => 'a@x.test']);
+        $this->assertDatabaseHas('person_emails', ['person_id' => $primary->id, 'email' => 'b@x.test']);
+        $this->assertDatabaseHas('interactions', ['person_id' => $primary->id, 'subject' => 'old chat']);
+    }
+
     public function test_productivity_prefills_follow_up_from_person_id(): void
     {
         $user = $this->user();

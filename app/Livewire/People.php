@@ -6,6 +6,7 @@ namespace App\Livewire;
 
 use App\Models\Person;
 use App\Models\PersonEmail;
+use App\Modules\People\Services\PersonMerger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -14,6 +15,7 @@ use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 #[Layout('layouts.app')]
 class People extends Component
@@ -41,6 +43,13 @@ class People extends Component
     public string $newCompany = '';
 
     public string $successMessage = '';
+
+    /** @var array<int,bool> */
+    public array $selected = [];
+
+    public string $bulkTag = '';
+
+    public int $mergePrimaryId = 0;
 
     public function updatingSearch(): void
     {
@@ -108,6 +117,166 @@ class People extends Component
         $this->resetPage();
     }
 
+    public function applyBulkTag(): void
+    {
+        $tag = trim($this->bulkTag);
+        if ($tag === '') {
+            $this->successMessage = 'Enter a tag to apply.';
+
+            return;
+        }
+
+        $ids = array_keys(array_filter($this->selected));
+        if ($ids === []) {
+            $this->successMessage = 'Select at least one person.';
+
+            return;
+        }
+
+        $people = Person::query()
+            ->where('user_id', Auth::id())
+            ->whereIn('id', $ids)
+            ->get();
+
+        $count = 0;
+        foreach ($people as $person) {
+            $existing = $person->tags ?? [];
+            if (in_array($tag, $existing, true)) {
+                continue;
+            }
+            $person->update(['tags' => array_values(array_merge($existing, [$tag]))]);
+            $count++;
+        }
+
+        $this->bulkTag = '';
+        $this->selected = [];
+        $this->successMessage = "Tag applied to {$count} ".($count === 1 ? 'person' : 'people').'.';
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selected = [];
+        $this->mergePrimaryId = 0;
+    }
+
+    public function startMerge(): void
+    {
+        $ids = array_keys(array_filter($this->selected));
+        if (count($ids) !== 2) {
+            $this->successMessage = 'Select exactly 2 people to merge.';
+
+            return;
+        }
+
+        $this->mergePrimaryId = (int) $ids[0];
+    }
+
+    public function cancelMerge(): void
+    {
+        $this->mergePrimaryId = 0;
+    }
+
+    public function setMergePrimary(int $id): void
+    {
+        if (! isset($this->selected[$id]) || ! $this->selected[$id]) {
+            return;
+        }
+
+        $this->mergePrimaryId = $id;
+    }
+
+    public function confirmMerge(PersonMerger $merger): void
+    {
+        $ids = array_keys(array_filter($this->selected));
+        if (count($ids) !== 2 || $this->mergePrimaryId === 0) {
+            $this->successMessage = 'Invalid merge selection.';
+
+            return;
+        }
+
+        if (! in_array($this->mergePrimaryId, $ids, true)) {
+            $this->successMessage = 'Primary must be one of the selected people.';
+
+            return;
+        }
+
+        $userId = Auth::id();
+        $primary = Person::query()->where('user_id', $userId)->find($this->mergePrimaryId);
+        $duplicateId = $ids[0] === $this->mergePrimaryId ? $ids[1] : $ids[0];
+        $duplicate = Person::query()->where('user_id', $userId)->find($duplicateId);
+
+        if ($primary === null || $duplicate === null) {
+            $this->successMessage = 'One of the selected people no longer exists.';
+            $this->clearSelection();
+
+            return;
+        }
+
+        $merger->merge($primary, $duplicate);
+
+        $this->clearSelection();
+        $this->successMessage = 'Merged into '.$primary->display_name.'.';
+        $this->resetPage();
+    }
+
+    public function exportJson(): StreamedResponse
+    {
+        $people = $this->buildExportQuery()->get();
+        $payload = $people->map(fn (Person $p) => [
+            'display_name' => $p->display_name,
+            'company' => $p->company,
+            'title' => $p->title,
+            'notes' => $p->notes,
+            'tags' => $p->tags ?? [],
+            'birthday' => $p->birthday?->toDateString(),
+            'last_contact_at' => $p->last_contact_at?->toIso8601String(),
+            'emails' => $p->emails->pluck('email')->all(),
+            'phones' => $p->phones->pluck('phone')->all(),
+        ])->all();
+
+        $filename = 'people-'.now()->format('Y-m-d').'.json';
+
+        return response()->streamDownload(function () use ($payload): void {
+            echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    public function exportCsv(): StreamedResponse
+    {
+        $people = $this->buildExportQuery()->get();
+        $filename = 'people-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($people): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['display_name', 'company', 'title', 'tags', 'emails', 'phones', 'birthday', 'last_contact_at', 'notes']);
+            foreach ($people as $p) {
+                fputcsv($out, [
+                    $p->display_name,
+                    $p->company,
+                    $p->title,
+                    implode('; ', $p->tags ?? []),
+                    $p->emails->pluck('email')->implode('; '),
+                    $p->phones->pluck('phone')->implode('; '),
+                    $p->birthday?->toDateString(),
+                    $p->last_contact_at?->toIso8601String(),
+                    $p->notes,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    private function buildExportQuery()
+    {
+        return Person::query()
+            ->where('user_id', Auth::id())
+            ->with([
+                'emails' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+                'phones' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+            ])
+            ->orderBy('display_name');
+    }
+
     private function resetNewForm(): void
     {
         $this->newName = '';
@@ -165,10 +334,17 @@ class People extends Component
             ->values()
             ->all();
 
+        $selectedIds = array_keys(array_filter($this->selected));
+        $selectedPeople = $selectedIds === [] ? collect() : Person::query()
+            ->where('user_id', $userId)
+            ->whereIn('id', $selectedIds)
+            ->get(['id', 'display_name', 'company']);
+
         return view('livewire.people', [
             'people' => $query->paginate(30),
             'allTags' => $allTags,
             'stalenessDays' => (int) config('people.staleness_days', 90),
+            'selectedPeople' => $selectedPeople,
         ]);
     }
 }
