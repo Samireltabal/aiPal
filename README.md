@@ -53,6 +53,7 @@ For more detailed instructions, visit the [Documentation Index](./docs/index.md)
 - **Tasks** — create, prioritize, and complete tasks by chatting
 - **Daily briefing** — morning summary of your day via email, configurable time and timezone. See the [Daily Briefing guide](./docs/daily-briefing.md) for setup and customization.
 - **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.). See the [Personal CRM guide](./docs/personal-crm.md) for full details.
+- **Location & Weather** — capture your current location (via browser geolocation, WhatsApp/Telegram share, or pasted Maps link) for context, weather queries ("will it rain?"), and improved daily briefings. View and manage in Settings; also exposed via REST API.
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
