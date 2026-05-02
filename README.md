@@ -110,8 +110,8 @@ Edit `.env` — set `APP_URL=http://localhost:8080` and `APP_PORT=8080` to avoid
 ```env
 APP_URL=http://localhost:8080
 APP_PORT=8080
-ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
-OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
+ANTHROPIC_API_KEY=sk-ant-...   # Sign up at https://anthropic.com, get key from https://console.anthropic.com/settings/keys | or use OPENAI_API_KEY, etc.
+OPENAI_API_KEY=sk-...          # Sign up at https://openai.com, get key from https://platform.openai.com/api-keys | Required for embeddings (memory/RAG) + STT (Whisper)
 ```
 
 ```bash
