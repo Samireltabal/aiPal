@@ -3,6 +3,7 @@ services:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
@@ -14,6 +15,7 @@ services:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
@@ -24,6 +26,10 @@ services:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage
+
+volumes:
+  bootstrap_cache:
