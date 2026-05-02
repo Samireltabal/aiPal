@@ -97,7 +97,7 @@ All tools can be enabled/disabled per user in Settings:
 
 ## Quick Start (Local)
 
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS/Windows) or `curl -fsSL https://get.docker.com | sh` (Linux)
+**Prerequisites:** Docker Desktop (macOS/Windows): [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) or on Linux: `curl -fsSL https://get.docker.com | sh` followed by `sudo apt update && sudo apt install docker-compose-plugin` (Debian/Ubuntu). Verify with `docker compose version`.
 
 ```bash
 git clone https://github.com/Samireltabal/aiPal.git
