@@ -13,7 +13,7 @@ The aiPal application is built using the Laravel framework, supporting a range o
 
 - **AI & Chat**: This module leverages various AI providers for NLP and chat functionalities.
 - **Memory & Knowledge**: Employs pgvector for semantic searches across conversations and uploaded documents.
-- **Voice**: Whisper STT and OpenAI/EievenLabs TTS for voice interactions.
+- **Voice**: Whisper STT and OpenAI/ElevenLabs TTS for voice interactions.
 - **Productivity**: Tools for notes, reminders, tasks, and daily briefings make up the productivity module.
 - **Integrations**: Includes setup for Google Calendar, Telegram, WhatsApp, Jira, GitLab, and Gmail integrations.
 
@@ -28,4 +28,8 @@ Data flows through several stages in aiPal:
 
 The database schema is designed to support multidimensional interactions, storing data in relational tables with support for document-based searches via pgvector.
 
-For more detailed diagrams and schema, refer to the internal development documentation.
+## See Also
+
+For more detailed diagrams, schema, data models, and module internals, refer to the comprehensive [ARCHITECTURE.md](../ARCHITECTURE.md) in the project root.
+
+See the [Documentation Index](./index.md) for navigation to related guides.

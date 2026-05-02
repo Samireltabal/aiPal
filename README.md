@@ -25,7 +25,7 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 - **Integrations**: Follow the [Setup Guides](#setup-guides) for step-by-step integration setup.
 - **Customizing the Experience**: Use .env configurations to adjust default models and AI behaviors.
 
-For more detailed instructions, visit the [docs](./docs) folder.
+For more detailed instructions, visit the [Documentation Index](./docs/index.md) or browse the [docs](./docs) folder.
 
 ---
 
@@ -226,6 +226,7 @@ If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT
 | Backup & restore | [docs/backup-restore.md](./docs/backup-restore.md) |
 | Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
 | FAQ | [docs/faq.md](./docs/faq.md) |
+| Security | [SECURITY.md](./SECURITY.md) |
 
 ---
 
@@ -248,13 +249,13 @@ vendor/bin/pint              # format code
 
 ## Architecture
 
-See [ARCHITECTURE.md](./docs/architecture.md) for system design, module layout, data flow, and DB schema.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema. For docs overview see [docs/index.md](./docs/index.md).
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines. Documentation contributions are welcome — see [docs/index.md](./docs/index.md) and [docs/contribution-guidelines.md](./docs/contribution-guidelines.md).
 
 ---
 
