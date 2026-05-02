@@ -36,6 +36,62 @@ class TelegramService implements MessagingChannel
         }
     }
 
+    /**
+     * Send a message with an inline keyboard. Used for approval prompts.
+     *
+     * @param  list<list<array{text: string, callback_data: string}>>  $keyboard
+     */
+    public function sendWithKeyboard(string $recipient, string $message, array $keyboard): ?int
+    {
+        $response = Http::timeout(10)
+            ->post("{$this->apiBase}/sendMessage", [
+                'chat_id' => $recipient,
+                'text' => $message,
+                'parse_mode' => 'Markdown',
+                'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
+            ]);
+
+        if (! $response->successful()) {
+            Log::warning('Telegram sendMessage (keyboard) failed', [
+                'chat_id' => $recipient,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return null;
+        }
+
+        return $response->json('result.message_id');
+    }
+
+    /**
+     * Answer a callback_query so the spinner on the button stops.
+     */
+    public function answerCallback(string $callbackQueryId, ?string $text = null): void
+    {
+        $payload = ['callback_query_id' => $callbackQueryId];
+        if ($text !== null) {
+            $payload['text'] = $text;
+        }
+
+        Http::timeout(10)->post("{$this->apiBase}/answerCallbackQuery", $payload);
+    }
+
+    /**
+     * Edit a previously-sent message. Used after a callback decision to remove
+     * the buttons and reflect the outcome.
+     */
+    public function editMessage(string $chatId, int $messageId, string $text): void
+    {
+        Http::timeout(10)
+            ->post("{$this->apiBase}/editMessageText", [
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'text' => $text,
+                'parse_mode' => 'Markdown',
+            ]);
+    }
+
     public function channelName(): string
     {
         return 'telegram';
@@ -47,7 +103,7 @@ class TelegramService implements MessagingChannel
             ->post("{$this->apiBase}/setWebhook", [
                 'url' => $url,
                 'secret_token' => $secret,
-                'allowed_updates' => ['message'],
+                'allowed_updates' => ['message', 'callback_query'],
             ]);
 
         return $response->successful() && $response->json('ok') === true;

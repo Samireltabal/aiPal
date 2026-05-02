@@ -133,6 +133,11 @@
                 Invitations
             </a>
             @endif
+
+            {{-- Extension point: premium and other addons can push nav items onto this stack.
+                 Items receive $base and $active_cls via @push variables (kept simple; addons can call route()).
+                 No-op when no addon is registered. --}}
+            @stack('premium-nav-items')
         </nav>
 
         {{-- PWA install banner --}}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Telegram;
 
+use App\Events\TelegramCallbackReceived;
 use App\Jobs\ProcessTelegramMessageJob;
 use App\Models\User;
 use App\Services\TelegramService;
@@ -20,6 +21,15 @@ class TelegramWebhookController
         }
 
         $update = $request->json()->all();
+
+        // Inline-keyboard button taps arrive as `callback_query` updates.
+        // Fire an event so addons (e.g. aiPal Premium) can route them.
+        if (isset($update['callback_query'])) {
+            $this->handleCallbackQuery($update['callback_query']);
+
+            return response('OK', 200);
+        }
+
         $message = $update['message'] ?? null;
 
         if (! $message) {
@@ -73,6 +83,36 @@ class TelegramWebhookController
         );
 
         return response('OK', 200);
+    }
+
+    /**
+     * @param  array<string, mixed>  $callbackQuery
+     */
+    private function handleCallbackQuery(array $callbackQuery): void
+    {
+        $callbackQueryId = (string) ($callbackQuery['id'] ?? '');
+        $callbackData = (string) ($callbackQuery['data'] ?? '');
+        $chatId = (string) ($callbackQuery['message']['chat']['id'] ?? '');
+        $messageId = isset($callbackQuery['message']['message_id'])
+            ? (int) $callbackQuery['message']['message_id']
+            : null;
+
+        if ($callbackQueryId === '' || $callbackData === '' || $chatId === '') {
+            return;
+        }
+
+        $user = User::query()->where('telegram_chat_id', $chatId)->first();
+        if (! $user) {
+            return;
+        }
+
+        TelegramCallbackReceived::dispatch(
+            $user,
+            $chatId,
+            $callbackData,
+            $callbackQueryId,
+            $messageId,
+        );
     }
 
     private function isValidSecret(Request $request): bool
