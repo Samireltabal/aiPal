@@ -15,34 +15,26 @@ We welcome contributions! Here is how you can help:
   - Ensure that any new feature or significant change has documentation.
 
 - **Community**:
-  - Join discussions on GitHub Discussions and our community chat at [Community Chat](https://example.com/community-chat).
+  - Join discussions on GitHub Discussions.
   - Help others by responding to issues, reviewing PRs, or updating docs.
 
 ---
 
 ## Setup Instructions
 
-To start developing locally, clone the repository and install dependencies:
+For complete development setup instructions, code style, testing, and PR guidelines, please refer to the root [CONTRIBUTING.md](../CONTRIBUTING.md) and the [Getting Started](./getting-started.md) guide.
+
+Quick start:
 ```bash
 git clone https://github.com/Samireltabal/aiPal.git
 cd aiPal
 composer install
 npm install
+cp .env.example .env
+# Start supporting services and run `composer run dev`
 ```
 
-### Code Style
-
-Ensure your code follows our coding standards:
-```bash
-vendor/bin/pint
-```
-
-### Testing
-
-Run the full test suite to verify your changes:
-```bash
-php artisan test --compact
-```
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for full details on Docker services, Pint, tests, and conventional commits.
 
 ---
 

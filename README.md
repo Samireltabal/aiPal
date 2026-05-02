@@ -27,6 +27,19 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 For more detailed instructions, visit the [Documentation Index](./docs/index.md) or browse the [docs](./docs) folder.
 
+### First Chat Examples
+
+Once setup and onboarding are complete, open the chat interface and try these natural language prompts to explore core features:
+
+- "Remind me to call my mom tomorrow at 9am via Telegram"
+- "Create a task: finish the Q3 report, priority high, due Friday"
+- "What do you remember about my project with Sarah from last week?"
+- "Upload my notes? [paste or use knowledge base] Tell me the key points from my meeting notes on AI agents"
+- "Will it rain this weekend in my current location?"
+- "Summarize my Gmail inbox and suggest replies"
+
+These examples demonstrate memory, tasks, reminders, RAG, location, and integrations. The assistant uses tools automatically when enabled in Settings.
+
 ---
 
 ## Features
