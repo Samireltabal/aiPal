@@ -17,3 +17,6 @@ Check the [Troubleshooting Guide](./troubleshooting.md) for common solutions. Fo
 
 ## Can aiPal be deployed behind a proxy?
 Yes, but ensure WebSocket and webhook endpoints are forwarded correctly. For more details, see the deployment guide.
+
+## Where can I find all the documentation?
+See the [Documentation Index](./index.md) for a complete list of guides covering setup, integrations, API, architecture, and operations. The main README also links to key sections.
