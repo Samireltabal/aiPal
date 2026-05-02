@@ -116,6 +116,8 @@ OPENAI_API_KEY=sk-...          # Sign up at https://openai.com, get key from htt
 
 ```bash
 docker compose up -d
+> **Note:** First `docker compose up -d` builds the Docker images (PHP 8.4 + deps, ~3-5 min on typical dev laptop). Subsequent restarts &lt;10s.
+
 docker compose ps  # ensure postgres and redis are healthy (Up (healthy))
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
