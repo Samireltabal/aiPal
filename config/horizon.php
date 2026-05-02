@@ -207,7 +207,9 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 60,
+            // Per-job timeout. Employee runs need minutes for multi-tool
+            // turns; cap this above ProcessEmployeeStep::$timeout (600s).
+            'timeout' => 900,
             'nice' => 0,
         ],
     ],
