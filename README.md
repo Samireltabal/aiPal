@@ -213,10 +213,12 @@ If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT
 | Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
 | WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
 | Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
+| Microsoft OAuth (Calendar & Mail) | [docs/microsoft-oauth-setup.md](./docs/microsoft-oauth-setup.md) |
 | Browser extension | [docs/browser-extension.md](./docs/browser-extension.md) |
 | VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
 | Daily Briefing | [docs/daily-briefing.md](./docs/daily-briefing.md) |
 | Personal CRM | [docs/personal-crm.md](./docs/personal-crm.md) |
+| Knowledge Base (RAG) | [docs/knowledge-base.md](./docs/knowledge-base.md) |
 
 ## Operations
 
