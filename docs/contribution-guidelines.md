@@ -1,23 +1,53 @@
 # Contribution Guidelines
 
-Thank you for considering contributing to aiPal! Here are a few guidelines to help you get started:
+We welcome contributions! Here is how you can help:
 
-## How to Contribute
+- **Bug Reports & Feature Requests**: Use the Issues tab on GitHub to report bugs or suggest new features. Please provide as much detail as possible.
 
-1. **Fork the Repository**: Start by forking the repository on GitHub.
-2. **Clone the Repo**: Clone the forked repository to your local machine.
-3. **Create a Branch**: Always create a new branch for the work you are going to do, instead of working directly on the master branch.
-4. **Commit Your Changes**: Make small commits with meaningful messages for every change.
-5. **Open a Pull Request**: Once you are happy with your changes, open a pull request against the main repository.
+- **Code Contributions**:
+  - Fork the repository and create your feature branch from `main`.
+  - Ensure the code adheres to existing conventions and style.
+  - Run all tests to ensure nothing is broken.
+  - Submit a pull request to `main` including detailed changes and link to any related issues.
 
-## Code Style
+- **Documentation**:
+  - Improve or expand the documentation. We are especially interested in detailed how-to guides.
+  - Ensure that any new feature or significant change has documentation.
 
-Please follow the existing code style found in the repository. Consistent code is key to maintainability.
+- **Community**:
+  - Join discussions on GitHub Discussions and our community chat at [Community Chat](https://example.com/community-chat).
+  - Help others by responding to issues, reviewing PRs, or updating docs.
 
-## Reporting Issues
+---
 
-Please use the GitHub issue tracker to report any bugs or request new features.
+## Setup Instructions
 
-## Code of Conduct
+To start developing locally, clone the repository and install dependencies:
+```bash
+git clone https://github.com/Samireltabal/aiPal.git
+cd aiPal
+composer install
+npm install
+```
 
-This project and everyone participating in it is governed by aiPal's Contributor Covenant Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
+### Code Style
+
+Ensure your code follows our coding standards:
+```bash
+vendor/bin/pint
+```
+
+### Testing
+
+Run the full test suite to verify your changes:
+```bash
+php artisan test --compact
+```
+
+---
+
+## Pull Request Guidelines
+
+- **Structure**: Use meaningful commit messages and well-structured branches.
+- **Documentation**: Update documentation for any new feature or API changes.
+- **Merge**: Ensure your branch is up-to-date with `main` and fully tested before requesting a merge.

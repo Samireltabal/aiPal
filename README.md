@@ -17,6 +17,7 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 1. **Fork and Clone the Repo**: Ensure you have the repository on your local development environment.
 2. **Project Setup**: Follow the Quick Start guide in this README to configure your environment.
 3. **Development Process**: See the [CONTRIBUTING.md](./CONTRIBUTING.md) for coding standards and GH flow.
+4. **Common Issues:** Refer to the [Troubleshooting Guide](./docs/troubleshooting.md) for resolving frequent setup issues.
 
 ### Understanding aiPal
 
@@ -101,6 +102,8 @@ docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
+
+**Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
 
 Open **http://localhost** and complete the onboarding wizard.
 
@@ -233,7 +236,7 @@ vendor/bin/pint              # format code
 
 ## Architecture
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema.
+See [ARCHITECTURE.md](./docs/architecture.md) for system design, module layout, data flow, and DB schema.
 
 ---
 
