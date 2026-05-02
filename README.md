@@ -31,12 +31,12 @@ For more detailed instructions, visit the [Documentation Index](./docs/index.md)
 
 Once setup and onboarding are complete, open the chat interface and try these natural language prompts to explore core features:
 
-- "Remind me to call my mom tomorrow at 9am via Telegram"
-- "Create a task: finish the Q3 report, priority high, due Friday"
-- "What do you remember about my project with Sarah from last week?"
-- "Upload my notes? [paste or use knowledge base] Tell me the key points from my meeting notes on AI agents"
-- "Will it rain this weekend in my current location?"
-- "Summarize my Gmail inbox and suggest replies"
+- \"Remind me to call my mom tomorrow at 9am via Telegram\"
+- \"Create a task: finish the Q3 report, priority high, due Friday\"
+- \"What do you remember about my project with Sarah from last week?\"
+- \"Upload my notes? [paste or use knowledge base] Tell me the key points from my meeting notes on AI agents\"
+- \"Will it rain this weekend in my current location?\"
+- \"Summarize my Gmail inbox and suggest replies\"
 
 These examples demonstrate memory, tasks, reminders, RAG, location, and integrations. The assistant uses tools automatically when enabled in Settings.
 
@@ -62,11 +62,11 @@ These examples demonstrate memory, tasks, reminders, RAG, location, and integrat
 
 ### Productivity
 - **Notes** — create and search notes by natural language
-- **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
+- **Reminders** — \"remind me tomorrow at 9am\" — delivered via email, Telegram, or WhatsApp
 - **Tasks** — create, prioritize, and complete tasks by chatting
 - **Daily briefing** — morning summary of your day via email, configurable time and timezone. See the [Daily Briefing guide](./docs/daily-briefing.md) for setup and customization.
 - **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.). See the [Personal CRM guide](./docs/personal-crm.md) for full details.
-- **Location & Weather** — capture your current location (via browser geolocation, WhatsApp/Telegram share, or pasted Maps link) for context, weather queries ("will it rain?"), and improved daily briefings. View and manage in Settings; also exposed via REST API.
+- **Location & Weather** — capture your current location (via browser geolocation, WhatsApp/Telegram share, or pasted Maps link) for context, weather queries (\"will it rain?\"), and improved daily briefings. View and manage in Settings; also exposed via REST API.
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
@@ -105,12 +105,12 @@ cd aiPal
 cp .env.example .env
 ```
 
-Edit `.env` — at minimum set one AI provider key (also set `APP_PORT=8080` if port 80 is taken, which is common on developer machines):
+Edit `.env` — set `APP_PORT=8080` to avoid port 80 conflicts (common on developer machines), and at minimum set one AI provider key:
 
 ```env
+APP_PORT=8080
 ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
 OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
-APP_PORT=8080                  # optional: change if 80 conflicts
 ```
 
 ```bash
@@ -118,20 +118,70 @@ docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 docker compose exec app php artisan storage:link
-# Quick test (should return 200 OK or redirect; use http://localhost:8080 if APP_PORT=8080)
-curl -I http://localhost  # adjust port as needed
+# Quick test (should return 200 OK or redirect)
+curl -I http://localhost:8080
 ```
 
 **Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
 
-Open **http://localhost** (or http://localhost:8080 if you set APP_PORT) and complete the onboarding wizard.
+Open **http://localhost:8080** and complete the onboarding wizard.
 
 ---
 
-[... rest of the file remains the same as previous ...]
-
 ## Deploy to a VPS (with HTTPS)
 
-[... unchanged ...]
+1. Clone the repo on your VPS.
+2. `cp .env.production.example .env`
+3. Edit `.env` with your domain, AI keys, etc.
+4. `docker compose -f docker-compose.prod.yml up -d --build`
+5. Run migrations: `docker compose exec app php artisan migrate --force`
+6. Set up HTTPS with Caddy or Nginx reverse proxy (recommended: [Caddy](https://caddyserver.com/)).
+7. (Optional) Set up Horizon dashboard with basic auth.
 
-[... and so on, same as first write ...]
+**Example Caddyfile:**
+```
+aipal.example.com {
+  reverse_proxy localhost:8080
+}
+```
+
+For production scaling, see [docs/deploy-vps.md](./docs/deploy-vps.md).
+
+---
+
+## Setup Guides
+
+### Telegram Bot
+
+1. Create a bot with [@BotFather](https://t.me/botfather).
+2. Set `TELEGRAM_BOT_TOKEN` in `.env`.
+3. Run `php artisan telegram:webhook` (or manually set webhook to `${APP_URL}/telegram/webhook`).
+4. Test: message your bot.
+
+See [docs/telegram-setup.md](./docs/telegram-setup.md).
+
+### WhatsApp Bot
+
+1. Create Meta app at [developers.facebook.com](https://developers.facebook.com).
+2. Add WhatsApp product, get credentials.
+3. Set in `.env`: `WHATSAPP_*`.
+4. Verify webhook: `php artisan whatsapp:verify`.
+5. Test: send message to your phone ID.
+
+See [docs/whatsapp-setup.md](./docs/whatsapp-setup.md).
+
+### Google OAuth (Calendar + Gmail)
+
+1. Create OAuth app in [Google Cloud Console](https://console.cloud.google.com).
+2. Add redirect URI `${APP_URL}/auth/google/callback`.
+3. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`.
+
+See [docs/google-oauth-setup.md](./docs/google-oauth-setup.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+AGPL-3.0. See [LICENSE](LICENSE) for details.
