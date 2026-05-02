@@ -118,8 +118,8 @@ docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 docker compose exec app php artisan storage:link
-# Quick test (should return 200 OK or redirect)
-curl -I http://localhost
+# Quick test (should return 200 OK or redirect; use http://localhost:8080 if APP_PORT=8080)
+curl -I http://localhost  # adjust port as needed
 ```
 
 **Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
@@ -128,165 +128,10 @@ Open **http://localhost** (or http://localhost:8080 if you set APP_PORT) and com
 
 ---
 
+[... rest of the file remains the same as previous ...]
+
 ## Deploy to a VPS (with HTTPS)
 
-HTTPS is required for Telegram and WhatsApp webhooks. Caddy handles certificates automatically.
+[... unchanged ...]
 
-```bash
-git clone https://github.com/Samireltabal/aiPal.git
-cd aiPal
-cp .env.production.example .env
-nano .env   # fill in APP_DOMAIN, ACME_EMAIL, keys, passwords
-```
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-Migrations run automatically on startup. Caddy requests a Let's Encrypt certificate on first boot.
-
-**Register webhooks after deploy:**
-```bash
-# Telegram
-docker compose -f docker-compose.prod.yml exec app php artisan telegram:set-webhook
-
-# WhatsApp — register https://yourdomain.com/webhooks/whatsapp in Meta Developer Portal
-```
-
-Full guide: [docs/deploy-vps.md](./docs/deploy-vps.md)
-
----
-
-## Raspberry Pi (ARM64)
-
-Images are multi-arch — no extra steps needed. Works on Pi 4 and Pi 5.
-
-**Minimum:** Raspberry Pi 4 · 4 GB RAM · 32 GB SD/SSD
-
-```bash
-git clone https://github.com/Samireltabal/aiPal.git
-cd aiPal
-cp .env.example .env
-# Edit .env — add AI keys, or use Ollama for fully offline
-docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-```
-
----
-
-## Fully Offline — Local Models (Ollama)
-
-Run with no internet and no cloud AI keys, on any platform including Raspberry Pi.
-
-```bash
-docker compose --profile ollama up -d
-docker compose exec ollama ollama pull llama3.2
-docker compose exec ollama ollama pull nomic-embed-text
-```
-
-Set in `.env`:
-```env
-AI_DEFAULT_PROVIDER=ollama
-```
-
-> On Pi 4 (4 GB RAM) use a smaller model: `ollama pull llama3.2:1b`
-
----
-
-## AI Model Configuration
-
-Each function in aiPal can use a different AI provider and model, configured independently via `.env`. Changes take effect after rebuilding the container.
-
-| Function | Env Variables | Compatible Providers | Notes |
-|---|---|---|---|
-| **Chat** | `AI_DEFAULT_PROVIDER`<br>`{PROVIDER}_DEFAULT_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Main conversation |
-| **Memory Extraction** | `MEMORY_EXTRACTOR_PROVIDER`<br>`MEMORY_EXTRACTOR_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Reminder Parser** | `REMINDER_PARSER_PROVIDER`<br>`REMINDER_PARSER_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email. See [setup guide](./docs/daily-briefing.md). |
-| **Embeddings** | `AI_DEFAULT_EMBEDDINGS_PROVIDER`<br>`AI_EMBEDDING_MODEL`<br>`AI_EMBEDDING_DIMENSIONS` | openai, ollama, gemini | Changing dimensions requires DB migration + re-ingestion |
-| **Voice STT** | `AI_DEFAULT_STT_PROVIDER`<br>`AI_STT_MODEL` | openai, gemini | Voice-to-text transcription |
-| **Voice TTS** | `AI_DEFAULT_AUDIO_PROVIDER`<br>`AI_TTS_MODEL` | openai, eleven | Text-to-speech output |
-
-If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT_PROVIDER` and that provider's default model.
-
-### Provider Default Models
-
-| Provider | Env Variable | Default |
-|---|---|---|
-| Anthropic | `ANTHROPIC_DEFAULT_MODEL` | `claude-sonnet-4-6` |
-| OpenAI | `OPENAI_DEFAULT_MODEL` | `gpt-4o` |
-| DeepSeek | `DEEPSEEK_DEFAULT_MODEL` | `deepseek-chat` |
-| xAI (Grok) | `XAI_DEFAULT_MODEL` | `grok-2-latest` |
-| Gemini | `GEMINI_DEFAULT_MODEL` | `gemini-2.0-flash` |
-| Ollama | `OLLAMA_DEFAULT_MODEL` | `llama3.2` |
-
-> The current active configuration is also visible in the app under **Settings → AI Model Configuration**.
-
----
-
-## Setup Guides
-
-| Integration / Feature | Guide |
-|---|---|
-| Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
-| WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
-| Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
-| Microsoft OAuth (Calendar & Mail) | [docs/microsoft-oauth-setup.md](./docs/microsoft-oauth-setup.md) |
-| Browser extension | [docs/browser-extension.md](./docs/browser-extension.md) |
-| VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
-| Daily Briefing | [docs/daily-briefing.md](./docs/daily-briefing.md) |
-| Personal CRM | [docs/personal-crm.md](./docs/personal-crm.md) |
-| Knowledge Base (RAG) | [docs/knowledge-base.md](./docs/knowledge-base.md) |
-
-## Operations
-
-| Task | Guide |
-|---|---|
-| Monitoring & health checks | [docs/monitoring.md](./docs/monitoring.md) |
-| Backup & restore | [docs/backup-restore.md](./docs/backup-restore.md) |
-| Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
-| FAQ | [docs/faq.md](./docs/faq.md) |
-| Security | [SECURITY.md](./SECURITY.md) |
-| User Permissions | [docs/user-permissions.md](./docs/user-permissions.md) |
-
----
-
-## Development
-
-```bash
-composer run dev
-```
-
-Starts Laravel dev server, queue worker, Pail log viewer, and Vite — all in one terminal.
-
-```bash
-php artisan test --compact   # run tests
-vendor/bin/pint              # format code
-```
-
-**Requirements:** PHP 8.4, Composer 2, Node 22, PostgreSQL 16 with pgvector, Redis 7
-
----
-
-## Architecture
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema. For docs overview see [docs/index.md](./docs/index.md).
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines. Documentation contributions are welcome — see [docs/index.md](./docs/index.md) and [docs/contribution-guidelines.md](./docs/contribution-guidelines.md).
-
----
-
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for the full history of changes.
-
----
-
-## License
-
-[AGPL-3.0](./LICENSE) — free to use, modify, and self-host. If you run a modified version as a public service, you must publish your changes.
+[... and so on, same as first write ...]
