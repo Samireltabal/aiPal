@@ -12,6 +12,9 @@ If you're an admin, generate an invite link from the dashboard and share it with
 ## How is my data stored?
 All data is stored in your self-hosted PostgreSQL database. AI provider API keys and settings are managed in the .env file.
 
+## How does the Knowledge Base (RAG) work?
+You can upload your own documents (MD, TXT, code files) via the web UI or chat. These are indexed using embeddings and pgvector for semantic search. The AI automatically retrieves relevant chunks when answering questions about your personal data. See the [Knowledge Base guide](./knowledge-base.md) for details.
+
 ## I encountered an error during setup. What should I do?
 Check the [Troubleshooting Guide](./troubleshooting.md) for common solutions. For more help, open a GitHub issue.
 
