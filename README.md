@@ -51,8 +51,8 @@ For more detailed instructions, visit the [docs](./docs) folder.
 - **Notes** — create and search notes by natural language
 - **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
 - **Tasks** — create, prioritize, and complete tasks by chatting
-- **Daily briefing** — morning summary of your day via email, configurable time and timezone
-- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.)
+- **Daily briefing** — morning summary of your day via email, configurable time and timezone. See the [Daily Briefing guide](./docs/daily-briefing.md) for setup and customization.
+- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.). See the [Personal CRM guide](./docs/personal-crm.md) for full details.
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
@@ -184,7 +184,7 @@ Each function in aiPal can use a different AI provider and model, configured ind
 | **Chat** | `AI_DEFAULT_PROVIDER`<br>`{PROVIDER}_DEFAULT_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Main conversation |
 | **Memory Extraction** | `MEMORY_EXTRACTOR_PROVIDER`<br>`MEMORY_EXTRACTOR_MODEL` | anthropic, openai, gemini | Requires structured output support |
 | **Reminder Parser** | `REMINDER_PARSER_PROVIDER`<br>`REMINDER_PARSER_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email |
+| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email. See [setup guide](./docs/daily-briefing.md). |
 | **Embeddings** | `AI_DEFAULT_EMBEDDINGS_PROVIDER`<br>`AI_EMBEDDING_MODEL`<br>`AI_EMBEDDING_DIMENSIONS` | openai, ollama, gemini | Changing dimensions requires DB migration + re-ingestion |
 | **Voice STT** | `AI_DEFAULT_STT_PROVIDER`<br>`AI_STT_MODEL` | openai, gemini | Voice-to-text transcription |
 | **Voice TTS** | `AI_DEFAULT_AUDIO_PROVIDER`<br>`AI_TTS_MODEL` | openai, eleven | Text-to-speech output |
@@ -208,12 +208,24 @@ If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT
 
 ## Setup Guides
 
-| Integration | Guide |
+| Integration / Feature | Guide |
 |---|---|
 | Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
 | WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
 | Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
+| Browser extension | [docs/browser-extension.md](./docs/browser-extension.md) |
 | VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
+| Daily Briefing | [docs/daily-briefing.md](./docs/daily-briefing.md) |
+| Personal CRM | [docs/personal-crm.md](./docs/personal-crm.md) |
+
+## Operations
+
+| Task | Guide |
+|---|---|
+| Monitoring & health checks | [docs/monitoring.md](./docs/monitoring.md) |
+| Backup & restore | [docs/backup-restore.md](./docs/backup-restore.md) |
+| Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
+| FAQ | [docs/faq.md](./docs/faq.md) |
 
 ---
 
