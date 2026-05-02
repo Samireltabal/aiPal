@@ -105,9 +105,10 @@ cd aiPal
 cp .env.example .env
 ```
 
-Edit `.env` — set `APP_PORT=8080` to avoid port 80 conflicts (common on developer machines), and at minimum set one AI provider key:
+Edit `.env` — set `APP_URL=http://localhost:8080` and `APP_PORT=8080` to avoid port 80 conflicts (common on developer machines), and at minimum set one AI provider key:
 
 ```env
+APP_URL=http://localhost:8080
 APP_PORT=8080
 ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
 OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
