@@ -117,6 +117,7 @@ APP_PORT=8080                  # optional: change if 80 conflicts
 docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
+docker compose exec app php artisan storage:link
 # Quick test (should return 200 OK or redirect)
 curl -I http://localhost
 ```
