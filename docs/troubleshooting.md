@@ -27,6 +27,31 @@ Having trouble setting up or using aiPal? Here are some common issues and their 
 - **Issue**: Insufficient memory or disk space.
   - **Solution**: Check available system resources. Consider upgrading server specs or cleaning up disk space.
 
+## pgvector Extension Missing or Not Enabled
+
+- **Issue**: Errors like "extension pgvector does not exist" or vector search failures.
+  - **Solution**: Ensure your PostgreSQL image supports pgvector (use `pgvector/pgvector:pg16` or similar in docker-compose). Run `CREATE EXTENSION vector;` manually via `docker compose exec postgres psql -U postgres -d aipal -c "CREATE EXTENSION IF NOT EXISTS vector;"`. Re-run migrations if needed.
+
+## Ollama / Local Models Not Working
+
+- **Issue**: Ollama profile fails to start or models not pulled.
+  - **Solution**: Use `docker compose --profile ollama up -d`. Manually pull models: `docker compose exec ollama ollama pull llama3.2` and `ollama pull nomic-embed-text`. Check logs with `docker compose logs ollama`. On low-RAM devices (e.g. Pi 4GB), use smaller models like `llama3.2:1b`.
+
+## Voice Features (STT/TTS) Failing
+
+- **Issue**: Push-to-talk or text-to-speech not functioning.
+  - **Solution**: Ensure `OPENAI_API_KEY` (or Gemini) is set for Whisper STT and TTS. For ElevenLabs, set `ELEVENLABS_API_KEY`. Check browser permissions for microphone. Test via Settings > Voice. On VPS, ensure no proxy blocks audio endpoints.
+
+## Redis Connection Problems
+
+- **Issue**: Queue or cache errors related to Redis.
+  - **Solution**: Verify Redis container is running (`docker compose ps`). Check `REDIS_HOST` and `REDIS_PASSWORD` in `.env`. Restart with `docker compose restart redis`.
+
+## Permission Denied Errors on Linux
+
+- **Issue**: File permission or socket errors when running containers.
+  - **Solution**: Add your user to docker group: `sudo usermod -aG docker $USER` then log out/in. For storage issues, ensure `storage/` and `bootstrap/cache` have write permissions: `sudo chown -R $USER:www-data storage bootstrap/cache`.
+
 ## New Issues?
 
 If you encounter a problem not listed here, please open an Issue on our [GitHub Issues page](https://github.com/Samireltabal/aiPal/issues).
