@@ -229,6 +229,7 @@ If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT
 | Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
 | FAQ | [docs/faq.md](./docs/faq.md) |
 | Security | [SECURITY.md](./SECURITY.md) |
+| User Permissions | [docs/user-permissions.md](./docs/user-permissions.md) |
 
 ---
 
