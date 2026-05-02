@@ -10,6 +10,24 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 ---
 
+## New User Guide
+
+### Getting Started
+
+1. **Fork and Clone the Repo**: Ensure you have the repository on your local development environment.
+2. **Project Setup**: Follow the Quick Start guide in this README to configure your environment.
+3. **Development Process**: See the [CONTRIBUTING.md](./CONTRIBUTING.md) for coding standards and GH flow.
+
+### Understanding aiPal
+
+- **AI Functions**: Toggle available AI functions, set up providers, and manage settings in the application dashboard.
+- **Integrations**: Follow the [Setup Guides](#setup-guides) for step-by-step integration setup.
+- **Customizing the Experience**: Use .env configurations to adjust default models and AI behaviors.
+
+For more detailed instructions, visit the [docs](./docs) folder.
+
+---
+
 ## Features
 
 ### AI & Chat
