@@ -117,6 +117,8 @@ APP_PORT=8080                  # optional: change if 80 conflicts
 docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
+# Quick test (should return 200 OK or redirect)
+curl -I http://localhost
 ```
 
 **Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
