@@ -5,6 +5,7 @@ This page provides an overview of all documentation for aiPal. Start here to fin
 ## Getting Started
 - [Getting Started](./getting-started.md) — Quick local installation and first steps.
 - [New User Guide](../README.md#new-user-guide) — Overview of features and understanding aiPal.
+- [Knowledge Base (RAG)](./knowledge-base.md) — Upload documents and query your personal knowledge base.
 
 ## Setup & Integrations
 - [Deploy to VPS](./deploy-vps.md) — Production deployment with HTTPS.
@@ -15,6 +16,7 @@ This page provides an overview of all documentation for aiPal. Start here to fin
 - [Browser Extension](./browser-extension.md)
 - [Daily Briefing](./daily-briefing.md)
 - [Personal CRM](./personal-crm.md)
+- [Knowledge Base (RAG)](./knowledge-base.md) — RAG setup and usage details.
 
 ## Operations & Support
 - [Monitoring](./monitoring.md)
