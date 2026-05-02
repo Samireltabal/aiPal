@@ -105,10 +105,12 @@ cd aiPal
 cp .env.example .env
 ```
 
-Edit `.env` — at minimum set one AI provider key:
+Edit `.env` — at minimum set one AI provider key (also set `APP_PORT=8080` if port 80 is taken, which is common on developer machines):
+
 ```env
 ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
 OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
+APP_PORT=8080                  # optional: change if 80 conflicts
 ```
 
 ```bash
@@ -119,7 +121,7 @@ docker compose exec app php artisan migrate
 
 **Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
 
-Open **http://localhost** and complete the onboarding wizard.
+Open **http://localhost** (or http://localhost:8080 if you set APP_PORT) and complete the onboarding wizard.
 
 ---
 
