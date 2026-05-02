@@ -121,7 +121,6 @@ docker compose up -d
 docker compose ps  # ensure postgres and redis are healthy (Up (healthy))
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
-docker compose exec app php artisan storage:link
 # Quick test (should return 200 OK or redirect)
 curl -I http://localhost:8080
 ```
