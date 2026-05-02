@@ -21,6 +21,9 @@ services:
       - ./resources:/var/www/html/resources
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage
+      # Required by the Docs Agent / Bespoke Reviewer sandbox: lets Horizon
+      # spin up sibling sandbox containers via the host Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
 
   scheduler:
     volumes:
@@ -30,6 +33,8 @@ services:
       - ./config:/var/www/html/config
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage
+      # Needed by app:employee:cleanup-sandboxes scheduled command.
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   bootstrap_cache:
