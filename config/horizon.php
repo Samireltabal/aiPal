@@ -199,7 +199,7 @@ return [
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            'queue' => ['default', 'employees'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -207,7 +207,14 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 60,
+            // Per-job timeout. Employee runs need minutes for multi-tool
+            // turns; cap this above ProcessEmployeeStep::$timeout (600s).
+            'timeout' => 900,
+            // Reasoning models (deepseek-reasoner, etc.) keep large thinking
+            // payloads in memory alongside tool definitions. 128 MB is too
+            // tight; the worker hits its memory cap mid-turn and Horizon
+            // redelivers the job, blowing the tries=1 budget.
+            'memory' => 512,
             'nice' => 0,
         ],
     ],

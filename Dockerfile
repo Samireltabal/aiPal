@@ -43,6 +43,7 @@ FROM php:8.4-fpm-alpine AS production
 # System deps + PHP extensions
 RUN apk add --no-cache \
         supervisor \
+        docker-cli \
         libpq-dev \
         libpng-dev \
         libjpeg-turbo-dev \

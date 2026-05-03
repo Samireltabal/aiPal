@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+echo "[entrypoint] Clearing stale bootstrap cache (defensive — protects against vendor changes)..."
+rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php bootstrap/cache/routes-*.php bootstrap/cache/views.php
+php artisan package:discover --no-interaction
+
 echo "[entrypoint] Running database migrations..."
 php artisan migrate --force
 

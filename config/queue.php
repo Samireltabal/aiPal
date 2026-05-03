@@ -68,7 +68,11 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // MUST be > the longest job's $timeout. Employee runs are 600s,
+            // so we run with 1200s. Redis re-queues unacknowledged jobs
+            // after this window — set too low and a slow job gets picked
+            // up twice in parallel, blowing tries=1 with MaxAttemptsExceeded.
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 1200),
             'block_for' => null,
             'after_commit' => false,
         ],

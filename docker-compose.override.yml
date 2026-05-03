@@ -3,27 +3,47 @@ services:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
       - ./routes:/var/www/html/routes
       - ./public/build:/var/www/html/public/build
       - storage:/var/www/html/storage
+      # Lets the web container manually re-execute approved gated tools
+      # (ApprovalExecuteController) by launching sandbox containers via
+      # the host Docker daemon. Same access pattern as horizon.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # FPM runs as www-data; the bind-mounted host docker.sock is
+    # root:root 660 so www-data can't reach the daemon. Open it up to
+    # all users on container start (dev-only relaxation; production
+    # never runs the web container with docker.sock mounted).
+    command: sh -c "chmod 666 /var/run/docker.sock && exec php-fpm --nodaemonize"
 
   horizon:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./resources:/var/www/html/resources
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage
+      # Required by the Docs Agent / Bespoke Reviewer sandbox: lets Horizon
+      # spin up sibling sandbox containers via the host Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
 
   scheduler:
     volumes:
       - ./app:/var/www/html/app
       - ./bootstrap:/var/www/html/bootstrap
+      - bootstrap_cache:/var/www/html/bootstrap/cache
       - ./config:/var/www/html/config
       - ./routes:/var/www/html/routes
       - storage:/var/www/html/storage
+      # Needed by app:employee:cleanup-sandboxes scheduled command.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  bootstrap_cache:

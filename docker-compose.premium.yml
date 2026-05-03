@@ -1,0 +1,47 @@
+# Optional dev override that mounts the sibling aiPal-premium clone into
+# the running containers, so the symlinked vendor/samireltabal/aipal-premium
+# resolves correctly inside the container.
+#
+# Usage (only when developing premium locally):
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.override.yml \
+#     -f docker-compose.premium.yml \
+#     up -d
+#
+# Prerequisites:
+#   1. Clone aiPal-premium as a sibling of this repo: ../aiPal-premium
+#   2. From this repo run:
+#        composer config repositories.aipal-premium path ../aiPal-premium
+#        composer require samireltabal/aipal-premium:@dev
+#      This creates the vendor/samireltabal/aipal-premium symlink.
+#   3. Set AIPAL_PREMIUM_ENABLED=true in .env
+#   4. Bring containers up with the command above.
+#   5. First-time only:
+#        docker compose exec app php artisan migrate --force
+#
+# This file is git-tracked (the override pattern) but its mounts only
+# work when ../aiPal-premium exists. Production deployments use a
+# different mechanism — see aiPal-premium/docs/deployment.md.
+
+services:
+  app:
+    volumes:
+      - ./vendor:/var/www/html/vendor
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ../aiPal-premium:/var/www/aiPal-premium
+
+  horizon:
+    volumes:
+      - ./vendor:/var/www/html/vendor
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ../aiPal-premium:/var/www/aiPal-premium
+
+  scheduler:
+    volumes:
+      - ./vendor:/var/www/html/vendor
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ../aiPal-premium:/var/www/aiPal-premium
