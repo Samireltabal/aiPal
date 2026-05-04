@@ -10,6 +10,38 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 ---
 
+## New User Guide
+
+### Getting Started
+
+1. **Fork and Clone the Repo**: Ensure you have the repository on your local development environment.
+2. **Project Setup**: Follow the Quick Start guide in this README to configure your environment.
+3. **Development Process**: See the [CONTRIBUTING.md](./CONTRIBUTING.md) for coding standards and GH flow.
+4. **Common Issues:** Refer to the [Troubleshooting Guide](./docs/troubleshooting.md) for resolving frequent setup issues.
+
+### Understanding aiPal
+
+- **AI Functions**: Toggle available AI functions, set up providers, and manage settings in the application dashboard.
+- **Integrations**: Follow the [Setup Guides](#setup-guides) for step-by-step integration setup.
+- **Customizing the Experience**: Use .env configurations to adjust default models and AI behaviors.
+
+For more detailed instructions, visit the [Documentation Index](./docs/index.md) or browse the [docs](./docs) folder.
+
+### First Chat Examples
+
+Once setup and onboarding are complete, open the chat interface and try these natural language prompts to explore core features:
+
+- "Remind me to call my mom tomorrow at 9am via Telegram"
+- "Create a task: finish the Q3 report, priority high, due Friday"
+- "What do you remember about my project with Sarah from last week?"
+- "Upload my notes? [paste or use knowledge base] Tell me the key points from my meeting notes on AI agents"
+- "Will it rain this weekend in my current location?"
+- "Summarize my Gmail inbox and suggest replies"
+
+These examples demonstrate memory, tasks, reminders, RAG, location, and integrations. The assistant uses tools automatically when enabled in Settings.
+
+---
+
 ## Features
 
 ### AI & Chat
@@ -32,8 +64,9 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 - **Notes** — create and search notes by natural language
 - **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
 - **Tasks** — create, prioritize, and complete tasks by chatting
-- **Daily briefing** — morning summary of your day via email, configurable time and timezone
-- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.)
+- **Daily briefing** — morning summary of your day via email, configurable time and timezone. See the [Daily Briefing guide](./docs/daily-briefing.md) for setup and customization.
+- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.). See the [Personal CRM guide](./docs/personal-crm.md) for full details.
+- **Location & Weather** — capture your current location (via browser geolocation, WhatsApp/Telegram share, or pasted Maps link) for context, weather queries ("will it rain?"), and improved daily briefings. View and manage in Settings; also exposed via REST API.
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
@@ -83,6 +116,8 @@ docker compose up -d
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
+
+**Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
 
 Open **http://localhost** and complete the onboarding wizard.
 
@@ -163,7 +198,7 @@ Each function in aiPal can use a different AI provider and model, configured ind
 | **Chat** | `AI_DEFAULT_PROVIDER`<br>`{PROVIDER}_DEFAULT_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Main conversation |
 | **Memory Extraction** | `MEMORY_EXTRACTOR_PROVIDER`<br>`MEMORY_EXTRACTOR_MODEL` | anthropic, openai, gemini | Requires structured output support |
 | **Reminder Parser** | `REMINDER_PARSER_PROVIDER`<br>`REMINDER_PARSER_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email |
+| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email. See [setup guide](./docs/daily-briefing.md). |
 | **Embeddings** | `AI_DEFAULT_EMBEDDINGS_PROVIDER`<br>`AI_EMBEDDING_MODEL`<br>`AI_EMBEDDING_DIMENSIONS` | openai, ollama, gemini | Changing dimensions requires DB migration + re-ingestion |
 | **Voice STT** | `AI_DEFAULT_STT_PROVIDER`<br>`AI_STT_MODEL` | openai, gemini | Voice-to-text transcription |
 | **Voice TTS** | `AI_DEFAULT_AUDIO_PROVIDER`<br>`AI_TTS_MODEL` | openai, eleven | Text-to-speech output |
@@ -187,12 +222,28 @@ If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT
 
 ## Setup Guides
 
-| Integration | Guide |
+| Integration / Feature | Guide |
 |---|---|
 | Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
 | WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
 | Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
+| Microsoft OAuth (Calendar & Mail) | [docs/microsoft-oauth-setup.md](./docs/microsoft-oauth-setup.md) |
+| Browser extension | [docs/browser-extension.md](./docs/browser-extension.md) |
 | VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
+| Daily Briefing | [docs/daily-briefing.md](./docs/daily-briefing.md) |
+| Personal CRM | [docs/personal-crm.md](./docs/personal-crm.md) |
+| Knowledge Base (RAG) | [docs/knowledge-base.md](./docs/knowledge-base.md) |
+
+## Operations
+
+| Task | Guide |
+|---|---|
+| Monitoring & health checks | [docs/monitoring.md](./docs/monitoring.md) |
+| Backup & restore | [docs/backup-restore.md](./docs/backup-restore.md) |
+| Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
+| FAQ | [docs/faq.md](./docs/faq.md) |
+| Security | [SECURITY.md](./SECURITY.md) |
+| User Permissions | [docs/user-permissions.md](./docs/user-permissions.md) |
 
 ---
 
@@ -215,13 +266,13 @@ vendor/bin/pint              # format code
 
 ## Architecture
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema. For docs overview see [docs/index.md](./docs/index.md).
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines. Documentation contributions are welcome — see [docs/index.md](./docs/index.md) and [docs/contribution-guidelines.md](./docs/contribution-guidelines.md).
 
 ---
 
