@@ -10,6 +10,38 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 ---
 
+## New User Guide
+
+### Getting Started
+
+1. **Fork and Clone the Repo**: Ensure you have the repository on your local development environment.
+2. **Project Setup**: Follow the Quick Start guide in this README to configure your environment.
+3. **Development Process**: See the [CONTRIBUTING.md](./CONTRIBUTING.md) for coding standards and GH flow.
+4. **Common Issues:** Refer to the [Troubleshooting Guide](./docs/troubleshooting.md) for resolving frequent setup issues.
+
+### Understanding aiPal
+
+- **AI Functions**: Toggle available AI functions, set up providers, and manage settings in the application dashboard.
+- **Integrations**: Follow the [Setup Guides](#setup-guides) for step-by-step integration setup.
+- **Customizing the Experience**: Use .env configurations to adjust default models and AI behaviors.
+
+For more detailed instructions, visit the [Documentation Index](./docs/index.md) or browse the [docs](./docs) folder.
+
+### First Chat Examples
+
+Once setup and onboarding are complete, open the chat interface and try these natural language prompts to explore core features:
+
+- \"Remind me to call my mom tomorrow at 9am via Telegram\"
+- \"Create a task: finish the Q3 report, priority high, due Friday\"
+- \"What do you remember about my project with Sarah from last week?\"
+- \"Upload my notes? [paste or use knowledge base] Tell me the key points from my meeting notes on AI agents\"
+- \"Will it rain this weekend in my current location?\"
+- \"Summarize my Gmail inbox and suggest replies\"
+
+These examples demonstrate memory, tasks, reminders, RAG, location, and integrations. The assistant uses tools automatically when enabled in Settings.
+
+---
+
 ## Features
 
 ### AI & Chat
@@ -30,10 +62,11 @@ A self-hostable, open-source personal AI assistant built with Laravel 13. Talk t
 
 ### Productivity
 - **Notes** — create and search notes by natural language
-- **Reminders** — "remind me tomorrow at 9am" — delivered via email, Telegram, or WhatsApp
+- **Reminders** — \"remind me tomorrow at 9am\" — delivered via email, Telegram, or WhatsApp
 - **Tasks** — create, prioritize, and complete tasks by chatting
-- **Daily briefing** — morning summary of your day via email, configurable time and timezone
-- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.)
+- **Daily briefing** — morning summary of your day via email, configurable time and timezone. See the [Daily Briefing guide](./docs/daily-briefing.md) for setup and customization.
+- **Personal CRM** — auto-populated people + interactions from forwarded email and Gmail drafts; `/people` UI, stale-contact dashboard widget, daily birthday reminders, AI tools (`find_person`, `find_stale_contacts`, `log_interaction`, etc.). See the [Personal CRM guide](./docs/personal-crm.md) for full details.
+- **Location & Weather** — capture your current location (via browser geolocation, WhatsApp/Telegram share, or pasted Maps link) for context, weather queries (\"will it rain?\"), and improved daily briefings. View and manage in Settings; also exposed via REST API.
 
 ### Integrations
 - **Google Calendar** — read events, include them in daily briefing and chat context
@@ -64,7 +97,7 @@ All tools can be enabled/disabled per user in Settings:
 
 ## Quick Start (Local)
 
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS/Windows) or `curl -fsSL https://get.docker.com | sh` (Linux)
+**Prerequisites:** Docker Desktop (macOS/Windows): [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) or on Linux: `curl -fsSL https://get.docker.com | sh` followed by `sudo apt update && sudo apt install docker-compose-plugin` (Debian/Ubuntu). Verify with `docker compose version`.
 
 ```bash
 git clone https://github.com/Samireltabal/aiPal.git
@@ -72,165 +105,87 @@ cd aiPal
 cp .env.example .env
 ```
 
-Edit `.env` — at minimum set one AI provider key:
+Edit `.env` — set `APP_URL=http://localhost:8080` and `APP_PORT=8080` to avoid port 80 conflicts (common on developer machines), and at minimum set one AI provider key:
+
 ```env
-ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, etc.
-OPENAI_API_KEY=sk-...          # required for embeddings + STT (Whisper)
+APP_URL=http://localhost:8080
+APP_PORT=8080
+ANTHROPIC_API_KEY=sk-ant-...   # Sign up at https://anthropic.com, get key from https://console.anthropic.com/settings/keys | or use OPENAI_API_KEY, etc.
+OPENAI_API_KEY=sk-...          # Sign up at https://openai.com, get key from https://platform.openai.com/api-keys | Required for embeddings (memory/RAG) + STT (Whisper)
 ```
 
 ```bash
 docker compose up -d
+> **Note:** First `docker compose up -d` builds the Docker images (PHP 8.4 + deps, ~3-5 min on typical dev laptop). Subsequent restarts &lt;10s.
+
+docker compose ps  # ensure postgres and redis are healthy (Up (healthy))
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
+docker compose exec app php artisan storage:link
+# Quick test (should return 200 OK or redirect)
+curl -I http://localhost:8080
 ```
 
-Open **http://localhost** and complete the onboarding wizard.
+**Note:** If you encounter permission issues with Docker on Linux, ensure your user is part of the `docker` group by running `sudo usermod -aG docker $USER` and logging out and back in.
+
+Open **http://localhost:8080** and complete the onboarding wizard.
 
 ---
 
 ## Deploy to a VPS (with HTTPS)
 
-HTTPS is required for Telegram and WhatsApp webhooks. Caddy handles certificates automatically.
+1. Clone the repo on your VPS.
+2. `cp .env.production.example .env`
+3. Edit `.env` with your domain, AI keys, etc.
+4. `docker compose -f docker-compose.prod.yml up -d --build`
+5. Run migrations: `docker compose exec app php artisan migrate --force`
+6. Set up HTTPS with Caddy or Nginx reverse proxy (recommended: [Caddy](https://caddyserver.com/)).
+7. (Optional) Set up Horizon dashboard with basic auth.
 
-```bash
-git clone https://github.com/Samireltabal/aiPal.git
-cd aiPal
-cp .env.production.example .env
-nano .env   # fill in APP_DOMAIN, ACME_EMAIL, keys, passwords
+**Example Caddyfile:**
+```
+aipal.example.com {
+  reverse_proxy localhost:8080
+}
 ```
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-Migrations run automatically on startup. Caddy requests a Let's Encrypt certificate on first boot.
-
-**Register webhooks after deploy:**
-```bash
-# Telegram
-docker compose -f docker-compose.prod.yml exec app php artisan telegram:set-webhook
-
-# WhatsApp — register https://yourdomain.com/webhooks/whatsapp in Meta Developer Portal
-```
-
-Full guide: [docs/deploy-vps.md](./docs/deploy-vps.md)
-
----
-
-## Raspberry Pi (ARM64)
-
-Images are multi-arch — no extra steps needed. Works on Pi 4 and Pi 5.
-
-**Minimum:** Raspberry Pi 4 · 4 GB RAM · 32 GB SD/SSD
-
-```bash
-git clone https://github.com/Samireltabal/aiPal.git
-cd aiPal
-cp .env.example .env
-# Edit .env — add AI keys, or use Ollama for fully offline
-docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-```
-
----
-
-## Fully Offline — Local Models (Ollama)
-
-Run with no internet and no cloud AI keys, on any platform including Raspberry Pi.
-
-```bash
-docker compose --profile ollama up -d
-docker compose exec ollama ollama pull llama3.2
-docker compose exec ollama ollama pull nomic-embed-text
-```
-
-Set in `.env`:
-```env
-AI_DEFAULT_PROVIDER=ollama
-```
-
-> On Pi 4 (4 GB RAM) use a smaller model: `ollama pull llama3.2:1b`
-
----
-
-## AI Model Configuration
-
-Each function in aiPal can use a different AI provider and model, configured independently via `.env`. Changes take effect after rebuilding the container.
-
-| Function | Env Variables | Compatible Providers | Notes |
-|---|---|---|---|
-| **Chat** | `AI_DEFAULT_PROVIDER`<br>`{PROVIDER}_DEFAULT_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Main conversation |
-| **Memory Extraction** | `MEMORY_EXTRACTOR_PROVIDER`<br>`MEMORY_EXTRACTOR_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Reminder Parser** | `REMINDER_PARSER_PROVIDER`<br>`REMINDER_PARSER_MODEL` | anthropic, openai, gemini | Requires structured output support |
-| **Daily Briefing** | `DAILY_BRIEFING_PROVIDER`<br>`DAILY_BRIEFING_MODEL` | anthropic, openai, deepseek, xai, gemini, ollama | Scheduled morning email |
-| **Embeddings** | `AI_DEFAULT_EMBEDDINGS_PROVIDER`<br>`AI_EMBEDDING_MODEL`<br>`AI_EMBEDDING_DIMENSIONS` | openai, ollama, gemini | Changing dimensions requires DB migration + re-ingestion |
-| **Voice STT** | `AI_DEFAULT_STT_PROVIDER`<br>`AI_STT_MODEL` | openai, gemini | Voice-to-text transcription |
-| **Voice TTS** | `AI_DEFAULT_AUDIO_PROVIDER`<br>`AI_TTS_MODEL` | openai, eleven | Text-to-speech output |
-
-If an agent's provider/model env var is left blank, it falls back to `AI_DEFAULT_PROVIDER` and that provider's default model.
-
-### Provider Default Models
-
-| Provider | Env Variable | Default |
-|---|---|---|
-| Anthropic | `ANTHROPIC_DEFAULT_MODEL` | `claude-sonnet-4-6` |
-| OpenAI | `OPENAI_DEFAULT_MODEL` | `gpt-4o` |
-| DeepSeek | `DEEPSEEK_DEFAULT_MODEL` | `deepseek-chat` |
-| xAI (Grok) | `XAI_DEFAULT_MODEL` | `grok-2-latest` |
-| Gemini | `GEMINI_DEFAULT_MODEL` | `gemini-2.0-flash` |
-| Ollama | `OLLAMA_DEFAULT_MODEL` | `llama3.2` |
-
-> The current active configuration is also visible in the app under **Settings → AI Model Configuration**.
+For production scaling, see [docs/deploy-vps.md](./docs/deploy-vps.md).
 
 ---
 
 ## Setup Guides
 
-| Integration | Guide |
-|---|---|
-| Telegram bot | [docs/telegram-setup.md](./docs/telegram-setup.md) |
-| WhatsApp (Meta Cloud API) | [docs/whatsapp-setup.md](./docs/whatsapp-setup.md) |
-| Google Calendar & Gmail | [docs/google-oauth-setup.md](./docs/google-oauth-setup.md) |
-| VPS deployment | [docs/deploy-vps.md](./docs/deploy-vps.md) |
+### Telegram Bot
 
----
+1. Create a bot with [@BotFather](https://t.me/botfather).
+2. Set `TELEGRAM_BOT_TOKEN` in `.env`.
+3. Run `php artisan telegram:webhook` (or manually set webhook to `${APP_URL}/telegram/webhook`).
+4. Test: message your bot.
 
-## Development
+See [docs/telegram-setup.md](./docs/telegram-setup.md).
 
-```bash
-composer run dev
-```
+### WhatsApp Bot
 
-Starts Laravel dev server, queue worker, Pail log viewer, and Vite — all in one terminal.
+1. Create Meta app at [developers.facebook.com](https://developers.facebook.com).
+2. Add WhatsApp product, get credentials.
+3. Set in `.env`: `WHATSAPP_*`.
+4. Verify webhook: `php artisan whatsapp:verify`.
+5. Test: send message to your phone ID.
 
-```bash
-php artisan test --compact   # run tests
-vendor/bin/pint              # format code
-```
+See [docs/whatsapp-setup.md](./docs/whatsapp-setup.md).
 
-**Requirements:** PHP 8.4, Composer 2, Node 22, PostgreSQL 16 with pgvector, Redis 7
+### Google OAuth (Calendar + Gmail)
 
----
+1. Create OAuth app in [Google Cloud Console](https://console.cloud.google.com).
+2. Add redirect URI `${APP_URL}/auth/google/callback`.
+3. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`.
 
-## Architecture
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design, module layout, data flow, and DB schema.
-
----
+See [docs/google-oauth-setup.md](./docs/google-oauth-setup.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, code style, and PR guidelines.
-
----
-
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for the full history of changes.
-
----
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-[AGPL-3.0](./LICENSE) — free to use, modify, and self-host. If you run a modified version as a public service, you must publish your changes.
+AGPL-3.0. See [LICENSE](LICENSE) for details.
